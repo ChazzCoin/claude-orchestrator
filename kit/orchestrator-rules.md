@@ -169,23 +169,85 @@ Full discipline lives in [`reviews/README.md`](reviews/README.md). Headline:
 
 ---
 
-## Sub-repo write discipline
+## Sub-projects — read / write protocol
 
-The orchestrator writes to a sub-repo in **exactly one place**:
-`<sub-repo>/.claude/active-<concern>.md`. v1 has `active-migrations.md`;
-the pattern is documented in
-[`.claude/templates/sub-repo-notices/README.md`](.claude/templates/sub-repo-notices/README.md).
+Full discipline lives in [`sub-projects.md`](sub-projects.md).
+Headline rules:
 
-Every other direction is one-way:
-- Sub-kits **read** this orchestrator on demand for stack / contracts
-  / conventions / features / open migrations.
-- The orchestrator **reads** sub-repo state via `git log`, `gh`, and
-  the sub-repo's own `.claude/active.md` files (if present).
-- The orchestrator does **not** dispatch tasks to sub-kits. Tasks
-  live in sub-kits. The user dispatches.
+### Two flavors
 
-If a skill ever wants to write something other than `active-*.md`
-into a sub-repo, that's a redesign — not a quick fix.
+- **Kit-enabled** — has `<sub>/.claude/foundation.json`. Orchestrator
+  reads richly (CLAUDE.md, tasks/, AUDIT.md, advertisement). Format
+  reference: [`claude-kit-reference.md`](claude-kit-reference.md).
+- **Non-kit** — orchestrator gets git-only treatment. Offer to
+  install claude-kit once at registration; record decline in
+  manifest notes.
+
+The orchestrator is **agnostic** — works with both. Kit-enabled is
+richer, non-kit is sufficient for migration coordination.
+
+### Read
+
+| Source | When |
+|---|---|
+| `git log`, `gh pr list`, `git status` | every `/sync-check`, before any write |
+| `<sub>/.claude/foundation.json` | register, sync — kit detection |
+| `<sub>/.claude/active.md` | sync — voluntary advertisement |
+| `<sub>/CLAUDE.md` | register — confirm orchestrator back-pointer |
+| `<sub>/tasks/`, `<sub>/docs/` | on demand (kit-enabled only) |
+
+The orchestrator NEVER edits files inside a sub-repo without going
+through git (branch + PR + user-approved merge).
+
+### Write — four sanctioned paths
+
+1. **Migration notices** — `<sub>/.claude/active-<concern>.md`.
+   Owned by `/migration` (and future per-concern skills). Templates
+   in [`templates/sub-repo-notices/`](templates/sub-repo-notices/).
+2. **Documentation / config / spec changes** — orchestrator drafts
+   the change directly, opens a PR
+   (`chore/orch-<YYYY-MM-DD-slug>`), user approves the merge. **No
+   task spec.** Use for: schema doc updates, phase additions,
+   ROADMAP edits, AUDIT entries, CLAUDE.md corrections,
+   ADR drafted into `<sub>/docs/decisions/`.
+3. **Coding-task specs** — orchestrator drafts a task spec into
+   `<sub>/tasks/backlog/TASK-NNN-slug.md` (kit-enabled only),
+   opens a PR with the spec. The sub-kit does the actual coding.
+4. **claude-kit install** — orchestrator runs claude-kit's
+   `bin/init` against the sub-project (only with user approval —
+   typically once at registration).
+
+**The split is load-bearing:** tasks are for **coding work**.
+Documentation / config / spec changes are not "tasks" in the
+sub-kit sense — those the orchestrator does directly via PR.
+
+### Git discipline (every write)
+
+- **Pull before write.** `git fetch` + verify clean working tree;
+  abort if dirty.
+- **Branch from up-to-date main.** Never write to main directly.
+- **PR title prefix `orch:`** so sub-repo's PR list distinguishes
+  orchestrator-authored work from sub-kit work.
+- **Body links to motivating orchestrator artifact** (ADR ID,
+  migration ID, etc.).
+- **Never auto-merge.** User approves every merge.
+- **Don't bypass hooks** unless user explicitly asks.
+
+Full rules: [`sub-projects.md`](sub-projects.md) "Git management".
+
+### Tracking
+
+Per-sub-repo state lives at `state/sub-repos/<name>.md`. The
+manifest at `state/manifest.md` is the index; the per-sub-repo
+file is the depth. See [`state/README.md`](state/README.md).
+
+### What the orchestrator does NOT do
+
+- Dispatch tasks to sub-kits. The user dispatches.
+- Write to a sub-repo without a PR (except `active-*.md` notices,
+  which are the structured one-way signal).
+- Auto-merge any PR.
+- Run sub-kit coding work itself.
 
 ---
 

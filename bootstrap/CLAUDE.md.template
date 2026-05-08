@@ -56,17 +56,25 @@ You **are**:
 
 ## Operating discipline
 
-The full CTO operating discipline — read order, artifact map, audit
-log discipline, migration / risk / incident / review lifecycles,
-cross-repo write rules — lives in
-[`.claude/orchestrator-rules.md`](.claude/orchestrator-rules.md).
+Generic CTO operating model lives in three kit-managed files (synced
+via `/sync`):
 
-That file is **kit-managed** and synced via `/sync`. It's the
-orchestrator's analog of claude-kit's `task-rules.md`.
+- [`.claude/orchestrator-rules.md`](.claude/orchestrator-rules.md)
+  — read order, artifact map, audit log discipline, migration /
+  risk / incident / review lifecycles, decision authority. The
+  orchestrator's analog of claude-kit's `task-rules.md`.
+- [`.claude/sub-projects.md`](.claude/sub-projects.md) — how the
+  orchestrator works with sub-projects: kit-enabled vs non-kit
+  detection, read protocol, write protocol (the four sanctioned
+  paths), git management, the sub-kit advertisement protocol.
+- [`.claude/claude-kit-reference.md`](.claude/claude-kit-reference.md)
+  — pinned reference for claude-kit's file shape and lifecycle, so
+  the orchestrator can read kit-enabled sub-projects with
+  confidence.
 
 This file (CLAUDE.md) holds the **company-specific** behaviors:
 identity, hard rules, conventions, instance-specific decisions.
-`orchestrator-rules.md` holds the **generic** operating model that
+The kit-managed files hold the **generic** operating model that
 applies to every orchestrator instance.
 
 ### Quick reference — what to read on session start
@@ -103,16 +111,30 @@ Per `.claude/orchestrator-rules.md` "Writing state — the artifact map":
 explicit `open-questions.md` entry saying "we talked, deferred,
 here's why." No "we discussed it" without a trace.
 
-### Sub-repo write boundary
+### Sub-projects — quick reference
 
-The orchestrator writes into a sub-repo in **exactly one place**:
-`<sub-repo>/.claude/active-<concern>.md`. v1 has
-`active-migrations.md`; the pattern (templates, format, ownership)
-is documented at
-[`.claude/templates/sub-repo-notices/README.md`](.claude/templates/sub-repo-notices/README.md).
+Full discipline at
+[`.claude/sub-projects.md`](.claude/sub-projects.md). Headline:
 
-Every other direction is one-way. Sub-kits **read** the orchestrator
-on demand; the orchestrator **does not dispatch** tasks to sub-kits.
+- **Sub-project agnostic.** Works with kit-enabled (claude-kit
+  installed) and non-kit sub-projects.
+- **Four write paths into a sub-repo:**
+  1. Migration notices (`<sub>/.claude/active-<concern>.md`) —
+     structured one-way signal.
+  2. Doc / config / spec changes — orchestrator drafts directly,
+     opens a `chore/orch-*` PR, user approves merge. **No task spec.**
+  3. Coding-task specs — drafted into `<sub>/tasks/backlog/`
+     (kit-enabled only); sub-kit ships the code.
+  4. claude-kit install — orchestrator runs `bin/init` against the
+     sub-project (with user approval).
+- **Tasks are for coding work.** Documentation / config / spec
+  edits the orchestrator does itself via PR.
+- **Never auto-merge.** User approves every merge.
+- **Sub-kit may write `<sub>/.claude/active.md`** to advertise its
+  current state. Voluntary; orchestrator works with or without.
+
+Per-sub-repo state lives at `state/sub-repos/<name>.md` (depth);
+`state/manifest.md` is the index.
 
 ## Conventions
 

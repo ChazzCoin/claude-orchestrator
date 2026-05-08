@@ -53,6 +53,25 @@ if [ -f "$KIT_DIR/kit/orchestrator-rules.md" ]; then
   echo "    rules:    .claude/orchestrator-rules.md"
 fi
 
+# kit/sub-projects.md → .claude/sub-projects.md
+if [ -f "$KIT_DIR/kit/sub-projects.md" ]; then
+  cp "$KIT_DIR/kit/sub-projects.md" "$TARGET/.claude/sub-projects.md"
+  echo "    rules:    .claude/sub-projects.md"
+fi
+
+# kit/claude-kit-reference.md → .claude/claude-kit-reference.md
+if [ -f "$KIT_DIR/kit/claude-kit-reference.md" ]; then
+  cp "$KIT_DIR/kit/claude-kit-reference.md" "$TARGET/.claude/claude-kit-reference.md"
+  echo "    rules:    .claude/claude-kit-reference.md"
+fi
+
+# kit/state/sub-repos/_template.md → state/sub-repos/_template.md
+mkdir -p "$TARGET/state/sub-repos"
+if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
+  cp "$KIT_DIR/kit/state/sub-repos/_template.md" "$TARGET/state/sub-repos/_template.md"
+  echo "    template: state/sub-repos/_template.md"
+fi
+
 mkdir -p "$TARGET/.claude/skills"
 if [ -d "$KIT_DIR/kit/skills" ]; then
   for skill in "$KIT_DIR/kit/skills"/*/; do
@@ -189,6 +208,7 @@ scaffold_dir "risks/mitigated"     "risks/mitigated"
 scaffold_dir "reviews/weekly"      "reviews/weekly"
 scaffold_dir "reviews/monthly"     "reviews/monthly"
 scaffold_dir "reviews/quarterly"   "reviews/quarterly"
+scaffold_dir "state/sub-repos"     "state/sub-repos"
 
 # --- 5. .gitignore ---------------------------------------------------
 

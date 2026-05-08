@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.3.0 — 2026-05-08
+
+Wire the sub-project structure. Codifies how the orchestrator
+relates to the codebases it tracks — kit-enabled vs non-kit, what's
+read, what's written, git discipline, sub-kit advertisement
+protocol. Skills are unchanged in this release; the structure is
+the foundation skills will use.
+
+**Reference docs (kit-managed, synced via /sync):**
+
+- `kit/sub-projects.md` — the master sub-project document. Two
+  flavors (kit-enabled, non-kit), read protocol, four sanctioned
+  write paths, sub-kit advertisement protocol, git management
+  discipline. Codifies the load-bearing rule: **tasks are for
+  coding work; doc/config/spec changes the orchestrator does
+  directly via PR.**
+- `kit/claude-kit-reference.md` — pinned reference for claude-kit's
+  shape (top-level layout, key files, state machine, branch / PR
+  conventions). Re-synced manually when claude-kit changes.
+
+**State shape (kit-managed templates + scaffold):**
+
+- `kit/state/sub-repos/_template.md` — per-sub-repo state file
+  template. Each registered sub-repo gets
+  `state/sub-repos/<name>.md` populated from this. Holds: current
+  state (auto), capabilities (auto), affecting-this-repo references
+  to all orchestrator artifacts (auto), advertisement (auto), Notes
+  (manual, preserved across sync).
+- `kit/state/README.md` updated to document the manifest-vs-depth
+  split and the auto vs manual fields.
+- `kit/templates/sub-repo-advertisement/active.md.template` + README
+  — the voluntary sub-kit advertisement protocol shape.
+
+**Manifest format (bootstrap, instance-owned):**
+
+- `bootstrap/state/manifest.md.template` extended with
+  `Kit-enabled`, `Last synced HEAD`, `Last synced at`, and
+  `State file` (link to per-sub-repo file) fields. The manifest
+  becomes a true index pointing into per-sub-repo depth files.
+
+**Operating discipline updates (kit-managed):**
+
+- `kit/orchestrator-rules.md` "Sub-repo write discipline" replaced
+  with "Sub-projects — read / write protocol" — references
+  sub-projects.md, summarizes the four write paths, summarizes git
+  discipline. Old "exactly one place" framing removed (the
+  orchestrator can write doc PRs and task specs too, just through
+  different paths).
+- `bootstrap/CLAUDE.md.template` updated to point at all three
+  kit-managed reference docs (orchestrator-rules.md,
+  sub-projects.md, claude-kit-reference.md) and summarize the four
+  write paths.
+
+**Wiring:**
+
+- `MANIFEST.json` extended with new kit entries (sub-projects.md,
+  claude-kit-reference.md, state/sub-repos/_template.md) and
+  `state/sub-repos` scaffold dir.
+- `bin/init` mirrors the new kit files and scaffolds
+  `state/sub-repos/`.
+
 ## 0.2.0 — 2026-05-08
 
 Scaffold the CTO operating model. Adds the structural analog of

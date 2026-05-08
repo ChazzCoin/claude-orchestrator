@@ -1,0 +1,48 @@
+# Sub-kit advertisement — {{REPO_NAME}}
+
+> **Voluntary protocol.** This file is written by the sub-kit (a
+> claude-kit instance in this repo) to advertise its current state
+> to the parent orchestrator. The orchestrator reads it on
+> `/sync-check` and surfaces the contents in
+> `state/sub-repos/{{REPO_NAME}}.md`.
+>
+> Optional. If this file isn't present, the orchestrator falls back
+> to inferring state from `git log` and `tasks/active/`.
+>
+> **Last written:** `{{TIMESTAMP}}`
+> **Source:** sub-kit `{{SKILL_OR_PROCESS}}` (e.g. `/handoff`,
+> `/morning`, manual)
+
+## Current task
+
+- **ID:** {{TASK_ID or "idle"}}
+- **Title:** {{TASK_TITLE or "—"}}
+- **Phase:** {{PHASE_NAME from tasks/PHASES.md or "—"}}
+- **Status:** {{STATUS — backlog / active / blocked / awaiting review / done}}
+
+## Current branch
+
+{{BRANCH_NAME or "main"}}
+
+## ETA / blockers
+
+{{Free-form. "Expected to ship within 2 days" or "Blocked on
+auth-token-format-v2 migration landing in api repo" or "—".}}
+
+## Notes for the orchestrator
+
+{{Free-form. Anything the sub-kit wants to surface — gotchas
+discovered, deviations from spec, advisories. Empty is fine.}}
+
+---
+
+## Format
+
+The orchestrator parses headings and bullet items. Sections may be
+omitted if not applicable. The file may be edited at any time; the
+orchestrator reads the latest version on each sync.
+
+If the sub-kit goes idle (no active task), set Current task to
+`idle` and clear the ETA / Notes sections. Don't delete the file —
+the orchestrator uses its presence as the signal that this sub-kit
+participates in the protocol.

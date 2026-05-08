@@ -64,21 +64,40 @@ one reasoning surface across software, infra, and product.
 
 ---
 
-## Cross-repo write path
+## Sub-projects
 
-Sub-kits **read** the orchestrator on demand. The orchestrator
-**writes** into sub-repos in exactly one place:
-`<sub-repo>/.claude/active-<concern>.md` — files the orchestrator
-drops so a sub-kit notices coordination signals on session start.
+The orchestrator is **sub-project agnostic** — works with both
+kit-enabled (claude-kit installed) and non-kit sub-projects.
 
-Today only `active-migrations.md` exists; the structure is in place
-to add more (active ADRs, pending contract changes, etc.) without
-re-architecting. The pattern is documented in
-[`kit/templates/sub-repo-notices/README.md`](kit/templates/sub-repo-notices/README.md).
+**Four sanctioned write paths** into a sub-repo:
 
-For the read-side to actually work, the sub-repo's claude-kit needs
-the matching session-start rule. See `claude-kit`'s `task-rules.md`
-"Active orchestrator notices" section.
+1. **Migration notices** — structured `<sub>/.claude/active-<concern>.md`
+   files. Templates in
+   [`kit/templates/sub-repo-notices/`](kit/templates/sub-repo-notices/).
+2. **Doc / config / spec changes** — orchestrator drafts directly,
+   opens a `chore/orch-*` PR, user approves the merge. **No task
+   spec.**
+3. **Coding-task specs** — drafted into `<sub>/tasks/backlog/`
+   (kit-enabled only). Sub-kit ships the code.
+4. **claude-kit install** — orchestrator runs `bin/init` against the
+   sub-project (with user approval).
+
+**Tasks are for coding work.** Doc / config / spec changes the
+orchestrator does itself via PR. The split is load-bearing.
+
+**Sub-kit advertisement protocol** *(voluntary)* — sub-kit MAY write
+`<sub>/.claude/active.md` to advertise its current state to the
+orchestrator. Template in
+[`kit/templates/sub-repo-advertisement/`](kit/templates/sub-repo-advertisement/).
+
+Full discipline lives in [`kit/sub-projects.md`](kit/sub-projects.md).
+The shape of claude-kit (so the orchestrator knows what it's reading
+in kit-enabled sub-projects) is pinned at
+[`kit/claude-kit-reference.md`](kit/claude-kit-reference.md).
+
+For the read-side to work in claude-kit'd sub-projects, claude-kit
+needs the matching session-start rule. See
+[`feat/orchestrator-integration` in claude-kit](https://github.com/ChazzCoin/claude-kit/tree/feat/orchestrator-integration).
 
 ---
 
@@ -88,6 +107,8 @@ the matching session-start rule. See `claude-kit`'s `task-rules.md`
 claude-orchestrator/
 ├── kit/                              # synced into instances on /sync
 │   ├── orchestrator-rules.md         # CTO operating discipline (analog of task-rules.md)
+│   ├── sub-projects.md               # how to work with kit-enabled + non-kit sub-projects
+│   ├── claude-kit-reference.md       # pinned reference for claude-kit's shape
 │   ├── skills/                       # /audit, /migration, /risk, /incident, /review, ...
 │   ├── decisions/                    # ADR template + format docs
 │   ├── features/                     # feature plan template + format docs
@@ -95,9 +116,12 @@ claude-orchestrator/
 │   ├── risks/                        # risk register template + format docs + matrix
 │   ├── incidents/                    # incident template + format docs + 48h rule
 │   ├── reviews/                      # weekly/monthly/quarterly templates + cadence docs
-│   ├── state/README.md
-│   └── templates/                    # files skills render into sub-repos
-│       └── sub-repo-notices/         #   migrations.md.template, ...
+│   ├── state/
+│   │   ├── README.md
+│   │   └── sub-repos/_template.md    # per-sub-repo state file template
+│   └── templates/                    # files rendered into sub-repos
+│       ├── sub-repo-notices/         #   active-<concern>.md (orch → sub-kit)
+│       └── sub-repo-advertisement/   #   active.md (sub-kit → orch, voluntary)
 ├── bootstrap/                        # one-time, becomes instance property
 │   ├── CLAUDE.md.template            # company-specific behavior + {{COMPANY_NAME}}
 │   ├── README.md.template

@@ -1,10 +1,16 @@
 # Sub-repo manifest
 
-Registered sub-repos in this company's stack. Authoritative — the
-orchestrator consults this file to know what to query and what to
-write notices into.
+Index of registered sub-repos in this company's stack. Authoritative
+— the orchestrator consults this file to know what to query, what to
+write notices into, and which depth file to read for each.
 
 Update via `/register` or by editing this file directly.
+
+> **The index, not the depth.** Each entry below is metadata only.
+> Per-sub-repo accumulated state lives at
+> [`state/sub-repos/<name>.md`](../../state/sub-repos/) — that's
+> where current branch, HEAD, advertisement, and references to all
+> orchestrator artifacts touching the repo live.
 
 ## Format
 
@@ -14,9 +20,18 @@ Update via `/register` or by editing this file directly.
 - **Local path:** /absolute/path/to/repo
 - **Git remote:** <url>
 - **Default branch:** main
+- **Kit-enabled:** true | false | unknown
 - **Registered:** YYYY-MM-DD
-- **Notes:** <anything that affects how state is queried>
+- **Last synced HEAD:** <sha or "never">
+- **Last synced at:** YYYY-MM-DD or "never"
+- **State file:** [state/sub-repos/<name>.md](state/sub-repos/<name>.md)
+- **Notes:** <one-line — anything that affects how state is queried>
 ```
+
+**Kit-enabled detection:** `true` if `<local-path>/.claude/foundation.json`
+exists with `kit.repo` containing `claude-kit`. `false` if it doesn't.
+`unknown` only during the moment between registration and the first
+`/sync-check`.
 
 ---
 
@@ -30,6 +45,10 @@ _(populate via /register or by hand)_
 - **Local path:** /Users/<you>/code/<company>-api
 - **Git remote:** git@github.com:<org>/<company>-api.git
 - **Default branch:** main
+- **Kit-enabled:** true
 - **Registered:** YYYY-MM-DD
+- **Last synced HEAD:** never
+- **Last synced at:** never
+- **State file:** [state/sub-repos/api.md](state/sub-repos/api.md)
 - **Notes:**
 -->

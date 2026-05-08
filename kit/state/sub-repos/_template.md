@@ -1,0 +1,90 @@
+---
+name: <sub-repo-name>
+role: api | ios | web | devops | other
+local_path: /absolute/path
+git_remote: <url>
+default_branch: main
+kit_enabled: true | false | unknown
+kit_version: <foundation.json pinned_sha or "n/a">
+registered: YYYY-MM-DD
+last_synced_head: <sha or "never">
+last_synced_at: YYYY-MM-DD or "never"
+last_pulled_at: YYYY-MM-DD or "never"
+kit_install_offered: <YYYY-MM-DD or "n/a">
+kit_install_declined: <YYYY-MM-DD or "n/a">
+---
+
+# <name>
+
+> Auto-managed by `/sync-check` and `/register`. Most fields above
+> the **Notes** section are regenerated. **Notes** is the only
+> section the user hand-edits — it's preserved across sync.
+
+## Current state
+
+- **Branch:** <local current branch>
+- **HEAD:** <short-sha · YYYY-MM-DD · last commit subject>
+- **Has uncommitted changes:** <yes / no>
+- **Open PRs:** <count> ([gh link])
+  - <#NNN — title · branch · updated YYYY-MM-DD>
+- **Active task (from `<sub>/.claude/active.md`):** <task ID + title or "—" if file absent>
+- **Sub-kit phase (from `<sub>/tasks/PHASES.md` if kit-enabled):** <phase name or "—">
+
+## Capabilities
+
+- **Read git log + PRs:** yes (any sub-repo)
+- **Kit-enabled:** <true | false | unknown>
+- **Read kit task system (`<sub>/tasks/`):** <yes if kit_enabled, else no>
+- **Read advertisement (`<sub>/.claude/active.md`):** <yes if file exists, else no>
+- **Has orchestrator back-pointer in `<sub>/CLAUDE.md`:** <yes | no | unknown>
+- **Receives migration notices:** yes (any sub-repo)
+
+## Affecting this repo
+
+### Open migrations
+*Populated from `migrations/active/` frontmatter `affects: [...]`.*
+- _(populate)_
+
+### Open features
+*Populated from `features/` frontmatter `affects: [...]` if present.*
+- _(populate)_
+
+### Recent ADRs touching this repo
+*Last 5 from `decisions/` mentioning this repo (manual or via skill).*
+- _(populate)_
+
+### Open risks tagged with this repo
+*Populated from `risks/open/` frontmatter `affects: [...]`.*
+- _(populate)_
+
+### Open / unresolved incidents affecting this repo
+*Populated from `incidents/` where status != postmortem-filed.*
+- _(populate)_
+
+## Orchestrator-authored work
+
+PRs the orchestrator has opened in this repo (per
+[`sub-projects.md`](../../.claude/sub-projects.md) "Git management"):
+
+- _(populate by `/sync-check` via `gh pr list` filtered for branches
+  matching `chore/orch-*`)_
+
+Recently merged orchestrator PRs:
+
+- _(populate)_
+
+## Sub-kit advertisement *(if kit-enabled and `<sub>/.claude/active.md` present)*
+
+Latest content read from `<sub>/.claude/active.md`:
+
+```
+_(populate — full file content or relevant excerpt)
+```
+
+## Notes
+
+*The orchestrator preserves this section across sync. Use for:
+per-repo gotchas, special instructions, things to remember
+specifically about this sub-repo. Empty is fine.*
+
+_(manual)_

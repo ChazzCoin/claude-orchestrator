@@ -17,6 +17,24 @@
         "note": "CTO operating discipline. Generic across all instances. The orchestrator's analog of claude-kit's task-rules.md."
       },
       {
+        "from": "kit/sub-projects.md",
+        "to": ".claude/sub-projects.md",
+        "policy": "file-replace",
+        "note": "How the orchestrator works with sub-projects (kit-enabled vs not, read/write discipline, git management). Generic across all instances."
+      },
+      {
+        "from": "kit/claude-kit-reference.md",
+        "to": ".claude/claude-kit-reference.md",
+        "policy": "file-replace",
+        "note": "Pinned reference for claude-kit's file shape and conventions. Re-synced manually when claude-kit changes."
+      },
+      {
+        "from": "kit/state/sub-repos/_template.md",
+        "to": "state/sub-repos/_template.md",
+        "policy": "file-replace",
+        "note": "Per-sub-repo state file template. Each registered sub-repo gets state/sub-repos/<name>.md instantiated from this."
+      },
+      {
         "from": "kit/skills/",
         "to": ".claude/skills/",
         "policy": "directory-mirror",
@@ -115,7 +133,8 @@
       "risks/mitigated",
       "reviews/weekly",
       "reviews/monthly",
-      "reviews/quarterly"
+      "reviews/quarterly",
+      "state/sub-repos"
     ]
   }
 }
