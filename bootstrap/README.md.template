@@ -1,0 +1,45 @@
+# {{COMPANY_NAME}} Orchestrator
+
+Macro architectural truth for **{{COMPANY_NAME}}**'s stack — registered
+sub-repos, contracts, conventions, decisions, migrations, roadmap.
+
+This is a [claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator)
+instance. It does not dispatch work to sub-kits and does not own a task
+list. It holds truth, makes drift visible, and gives one reasoning
+surface across software, infra, and product.
+
+## Start a session
+
+Open Claude Code in this directory. From there:
+
+- `/onboard` — orient (or re-orient) on what's here.
+- `/audit` — populate or refresh macro state by interview.
+- `/status` — current macro picture at a glance.
+- `/sync-check` — drift between sub-repos and the orchestrator's contracts.
+- `/migration` — open, update, or close a cross-repo migration.
+- `/decision` — file an ADR.
+- `/feature` — author a cross-cutting feature plan.
+
+Run `/skills` for the full index.
+
+## Sub-kit integration
+
+Each sub-repo's `CLAUDE.md` should add a pointer back to this
+orchestrator:
+
+> **Macro architecture and contracts:** see `~/path/to/{{COMPANY_NAME}}-orchestrator/`.
+> Read `stack/inventory.md`, `contracts/`, and any `features/<x>.md`
+> matching current work before making cross-platform decisions.
+
+The orchestrator can write migration notices into each sub-repo's
+`.claude/active-migrations.md` so a sub-kit notices an open migration on
+session start. That is the only orchestrator → sub-repo write path.
+
+## Updates
+
+Bootstrapped from the
+[claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator)
+kit. Run `/sync` to pull kit updates (skills, generic templates).
+Bootstrap content (this README, CLAUDE.md, stack/, contracts/,
+conventions/, etc.) belongs to this instance and is never touched by
+`/sync`.

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
+  "name": "claude-orchestrator",
+  "version": "0.1.0",
+  "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
+  "source": {
+    "repo": "https://github.com/ChazzCoin/claude-orchestrator",
+    "branch": "main"
+  },
+  "kit": {
+    "description": "Files synced into target instances. Updates here propagate via /sync.",
+    "files": [
+      {
+        "from": "kit/skills/",
+        "to": ".claude/skills/",
+        "policy": "directory-mirror",
+        "note": "Each subdirectory under kit/skills/ is a skill. Mirrored into the instance's .claude/skills/."
+      },
+      {
+        "from": "kit/decisions/",
+        "to": "decisions/",
+        "policy": "directory-mirror-files",
+        "note": "ADR template and format docs."
+      },
+      {
+        "from": "kit/features/",
+        "to": "features/",
+        "policy": "directory-mirror-files",
+        "note": "Feature plan template and format docs."
+      },
+      {
+        "from": "kit/migrations/",
+        "to": "migrations/",
+        "policy": "directory-mirror-files",
+        "note": "Migration template and format docs. Top-level files only — does not touch active/ or closed/."
+      },
+      {
+        "from": "kit/state/README.md",
+        "to": "state/README.md",
+        "policy": "file-replace",
+        "note": "State directory format documentation."
+      }
+    ]
+  },
+  "bootstrap": {
+    "description": "One-time files copied at init only. Never overwritten by /sync.",
+    "files": [
+      { "from": "bootstrap/CLAUDE.md.template",                     "to": "CLAUDE.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/README.md.template",                     "to": "README.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/roadmap.md.template",                    "to": "roadmap.md",                 "policy": "skip-if-exists" },
+      { "from": "bootstrap/open-questions.md.template",             "to": "open-questions.md",          "policy": "skip-if-exists" },
+      { "from": "bootstrap/platform-constraints.md.template",       "to": "platform-constraints.md",    "policy": "skip-if-exists" },
+      { "from": "bootstrap/stack/inventory.md.template",            "to": "stack/inventory.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/stack/infra-map.md.template",            "to": "stack/infra-map.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/models.md.template",           "to": "contracts/models.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/endpoints.md.template",        "to": "contracts/endpoints.md",     "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/events.md.template",           "to": "contracts/events.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/auth.md.template",           "to": "conventions/auth.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/error-handling.md.template", "to": "conventions/error-handling.md", "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
+      { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
+      {
+        "from": "bootstrap/foundation.json",
+        "to": ".claude/foundation.json",
+        "policy": "init-only-with-sha",
+        "note": "Stamped with the kit's HEAD commit SHA at init time."
+      }
+    ]
+  },
+  "scaffold": {
+    "description": "Empty directories created at init.",
+    "directories": [
+      "migrations/active",
+      "migrations/closed"
+    ]
+  }
+}

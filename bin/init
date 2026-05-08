@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+#
+# claude-orchestrator init — bootstrap a <company>-orchestrator instance.
+#
+# Usage:
+#   claude-orchestrator/bin/init [target-dir]
+#
+# If [target-dir] is omitted, the current working directory is used.
+#
+# Behavior:
+#   - kit/skills/<name>/        → <target>/.claude/skills/<name>/   (overwrite, additive)
+#   - kit/decisions/*           → <target>/decisions/*              (overwrite)
+#   - kit/features/*            → <target>/features/*               (overwrite)
+#   - kit/migrations/*.md       → <target>/migrations/*.md          (overwrite, top-level only)
+#   - kit/state/README.md       → <target>/state/README.md          (overwrite)
+#   - bootstrap/<x>.template    → <target>/<x>                      (skip-if-exists)
+#   - .claude/foundation.json stamped with this kit's HEAD commit SHA
+#   - migrations/active/, migrations/closed/ scaffolded with .gitkeep
+#   - .gitignore created if missing
+#
+# This script uses cp + mkdir, no curl, no network calls. The kit must
+# already be on disk (clone it first).
+
+set -euo pipefail
+
+TARGET="${1:-$PWD}"
+TARGET="$(cd "$TARGET" && pwd)"
+
+KIT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+KIT_REPO_URL="https://github.com/ChazzCoin/claude-orchestrator"
+
+if git -C "$KIT_DIR" rev-parse HEAD >/dev/null 2>&1; then
+  KIT_SHA="$(git -C "$KIT_DIR" rev-parse HEAD)"
+  KIT_BRANCH="$(git -C "$KIT_DIR" rev-parse --abbrev-ref HEAD)"
+else
+  KIT_SHA="unpinned"
+  KIT_BRANCH="main"
+fi
+
+echo "claude-orchestrator init"
+echo "  source: $KIT_DIR (sha: ${KIT_SHA:0:12}, branch: $KIT_BRANCH)"
+echo "  target: $TARGET"
+echo
+
+# --- 1. Sync kit/ files (overwrite policy) ---------------------------
+
+echo "→ Installing kit files into $TARGET/"
+
+mkdir -p "$TARGET/.claude/skills"
+if [ -d "$KIT_DIR/kit/skills" ]; then
+  for skill in "$KIT_DIR/kit/skills"/*/; do
+    [ -d "$skill" ] || continue
+    name="$(basename "$skill")"
+    cp -R "$skill" "$TARGET/.claude/skills/$name"
+    echo "    skill:    $name"
+  done
+fi
+
+mirror_files() {
+  local src_dir="$1"
+  local dst_dir="$2"
+  local label_prefix="$3"
+  [ -d "$src_dir" ] || return 0
+  mkdir -p "$dst_dir"
+  for f in "$src_dir"/*; do
+    [ -f "$f" ] || continue
+    name="$(basename "$f")"
+    cp "$f" "$dst_dir/$name"
+    echo "    template: $label_prefix/$name"
+  done
+}
+
+mirror_files "$KIT_DIR/kit/decisions"  "$TARGET/decisions"  "decisions"
+mirror_files "$KIT_DIR/kit/features"   "$TARGET/features"   "features"
+mirror_files "$KIT_DIR/kit/migrations" "$TARGET/migrations" "migrations"
+
+mkdir -p "$TARGET/state"
+if [ -f "$KIT_DIR/kit/state/README.md" ]; then
+  cp "$KIT_DIR/kit/state/README.md" "$TARGET/state/README.md"
+  echo "    template: state/README.md"
+fi
+
+# --- 2. Bootstrap files (skip if exists) -----------------------------
+
+echo
+echo "→ Installing bootstrap templates (preserving any existing files)"
+
+bootstrap_copy() {
+  local src="$1"
+  local dst="$2"
+  local label="$3"
+  if [ -f "$dst" ]; then
+    echo "    skip:    $label  (exists)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  echo "    create:  $label"
+}
+
+bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"                     "$TARGET/CLAUDE.md"                  "CLAUDE.md"
+bootstrap_copy "$KIT_DIR/bootstrap/README.md.template"                     "$TARGET/README.md"                  "README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/roadmap.md.template"                    "$TARGET/roadmap.md"                 "roadmap.md"
+bootstrap_copy "$KIT_DIR/bootstrap/open-questions.md.template"             "$TARGET/open-questions.md"          "open-questions.md"
+bootstrap_copy "$KIT_DIR/bootstrap/platform-constraints.md.template"       "$TARGET/platform-constraints.md"    "platform-constraints.md"
+bootstrap_copy "$KIT_DIR/bootstrap/stack/inventory.md.template"            "$TARGET/stack/inventory.md"         "stack/inventory.md"
+bootstrap_copy "$KIT_DIR/bootstrap/stack/infra-map.md.template"            "$TARGET/stack/infra-map.md"         "stack/infra-map.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/models.md.template"           "$TARGET/contracts/models.md"        "contracts/models.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/endpoints.md.template"        "$TARGET/contracts/endpoints.md"     "contracts/endpoints.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/events.md.template"           "$TARGET/contracts/events.md"        "contracts/events.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/auth.md.template"           "$TARGET/conventions/auth.md"        "conventions/auth.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/error-handling.md.template" "$TARGET/conventions/error-handling.md" "conventions/error-handling.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/naming.md.template"         "$TARGET/conventions/naming.md"      "conventions/naming.md"
+bootstrap_copy "$KIT_DIR/bootstrap/state/manifest.md.template"             "$TARGET/state/manifest.md"          "state/manifest.md"
+
+# --- 3. foundation.json (stamped) ------------------------------------
+
+FOUNDATION_FILE="$TARGET/.claude/foundation.json"
+TODAY="$(date +%Y-%m-%d)"
+
+if [ -f "$FOUNDATION_FILE" ]; then
+  echo "    skip:    .claude/foundation.json  (exists — use /sync to update)"
+else
+  cat > "$FOUNDATION_FILE" <<EOF
+{
+  "kit": {
+    "repo": "$KIT_REPO_URL",
+    "branch": "$KIT_BRANCH"
+  },
+  "pinned_sha": "$KIT_SHA",
+  "last_synced": "$TODAY",
+  "overrides": []
+}
+EOF
+  echo "    create:  .claude/foundation.json  (pinned to ${KIT_SHA:0:12})"
+fi
+
+# --- 4. Scaffold dirs ------------------------------------------------
+
+echo
+echo "→ Scaffolding directories"
+
+scaffold_dir() {
+  local dir="$1"
+  local label="$2"
+  mkdir -p "$TARGET/$dir"
+  if [ -z "$(ls -A "$TARGET/$dir" 2>/dev/null)" ]; then
+    touch "$TARGET/$dir/.gitkeep"
+    echo "    create:  $label/.gitkeep"
+  else
+    echo "    skip:    $label  (not empty)"
+  fi
+}
+
+scaffold_dir "migrations/active" "migrations/active"
+scaffold_dir "migrations/closed" "migrations/closed"
+
+# --- 5. .gitignore ---------------------------------------------------
+
+if [ ! -f "$TARGET/.gitignore" ]; then
+  cat > "$TARGET/.gitignore" <<'EOF'
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Claude Code local
+.claude/settings.local.json
+.claude/worktrees/
+
+# Generated state (regenerated on demand)
+state/sync-status.md
+state/audit-progress.md
+EOF
+  echo "    create:  .gitignore"
+fi
+
+# --- 6. Next steps ---------------------------------------------------
+
+cat <<EOF
+
+✅ claude-orchestrator installed.
+
+Next steps:
+  1. Open CLAUDE.md and replace {{COMPANY_NAME}} / {{COMPANY_PURPOSE}}.
+  2. Open README.md and replace {{COMPANY_NAME}}; tighten copy for this instance.
+  3. Run /audit inside Claude Code to populate stack, contracts,
+     conventions, constraints — that's the v1 entry point for a
+     fresh orchestrator instance.
+  4. Use /register to add sub-repos to state/manifest.md as you
+     spin them up.
+
+When the kit gets new versions later:
+  - Run /sync inside Claude Code to pull updates.
+  - Bootstrap files (CLAUDE.md, roadmap.md, contracts/, conventions/,
+    stack/, state/manifest.md) are never touched by /sync. Skills
+    and the templates under decisions/, features/, migrations/ are.
+
+Source: $KIT_REPO_URL
+EOF
