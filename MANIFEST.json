@@ -77,6 +77,12 @@
         "note": "Review templates (weekly/monthly/quarterly) + format docs. Top-level files only — does not touch weekly/ monthly/ quarterly/ instance content."
       },
       {
+        "from": "kit/pr-reviews/",
+        "to": "pr-reviews/",
+        "policy": "directory-mirror-files",
+        "note": "PR review template + format docs (orchestrator-grade macro reviews). Top-level files only — does not touch instance review files."
+      },
+      {
         "from": "kit/state/README.md",
         "to": "state/README.md",
         "policy": "file-replace",
@@ -134,7 +140,8 @@
       "reviews/weekly",
       "reviews/monthly",
       "reviews/quarterly",
-      "state/sub-repos"
+      "state/sub-repos",
+      "pr-reviews"
     ]
   }
 }

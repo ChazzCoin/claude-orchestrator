@@ -230,6 +230,39 @@ specifies one.
 If a merged orchestrator PR turns out wrong, the rollback is a new
 PR (`git revert`), not a force-push. Same approval flow.
 
+### Reviewing PRs (orchestrator-grade)
+
+Separate from sub-kit's `/review` (which catches line-level issues).
+The orchestrator's review checks **macro fit** — does the PR honor
+the contracts, conventions, principles, and active migrations
+recorded here?
+
+**Trigger conditions** *(not every PR — only when one applies):*
+
+- The PR touches a sub-repo affected by an active migration
+- The PR touches a contract surface (`contracts/*.md` domains)
+- The PR touches conventions (auth, naming, error handling), vendors,
+  or schemas
+- The PR was authored by the orchestrator itself (`chore/orch-*`)
+- The user explicitly asks
+
+**What the review reads:** PR diff + spec, plus orchestrator
+artifacts — `contracts/`, `conventions/`, `platform-constraints.md`,
+`tech-principles.md`, the affected migration's per-repo plan,
+recent incidents.
+
+**Outputs:** filed at `pr-reviews/YYYY-MM-DD-<repo>-pr<N>.md`; PR
+comment posted via `gh pr comment` (with user approval); spawned
+artifacts (risks, ADRs) when applicable. Three statuses: ✅ approved,
+⚠ conditional, ❌ request changes.
+
+**Never auto-approve, never auto-merge.** The user reviews the
+review.
+
+Full discipline at [`pr-reviews/README.md`](pr-reviews/README.md).
+The two reviews compose: sub-kit catches line-level, orchestrator
+catches macro fit.
+
 ---
 
 ## Tracking

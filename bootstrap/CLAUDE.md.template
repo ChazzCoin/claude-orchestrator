@@ -102,6 +102,7 @@ Per `.claude/orchestrator-rules.md` "Writing state — the artifact map":
 | Coordinated state transition | Migration in `migrations/active/` | `/migration` |
 | Concrete exposure with severity × likelihood | Risk in `risks/open/` | `/risk` |
 | Cross-stack incident | Incident in `incidents/` | `/incident` |
+| Macro-grade PR review (does it fit the contract?) | `pr-reviews/<id>.md` | `/pr-review` |
 | Recurring check-in | `reviews/{weekly,monthly,quarterly}/` | `/review` |
 | Sub-repo registered | `state/manifest.md` | `/register` |
 | Deferred / question | `open-questions.md` | manual |
@@ -197,4 +198,5 @@ this role. Run `/skills` for the live list. Current set:
 - **Registries:** `vendors.md`, `ownership.md`, `slos.md`,
   `cost-tracking.md`, `security-posture.md`, `compliance.md`
 - **Artifacts:** `decisions/`, `features/`, `migrations/{active,closed}/`,
-  `risks/{open,mitigated}/`, `incidents/`, `reviews/{weekly,monthly,quarterly}/`
+  `risks/{open,mitigated}/`, `incidents/`,
+  `reviews/{weekly,monthly,quarterly}/`, `pr-reviews/`

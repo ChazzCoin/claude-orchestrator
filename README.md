@@ -57,6 +57,7 @@ same shape (`kit/` synced + `bootstrap/` one-time + `MANIFEST.json` +
 - `risks/{open,mitigated}/` — risk register
 - `incidents/` — cross-stack postmortems
 - `reviews/{weekly,monthly,quarterly}/` — recurring CTO check-ins
+- `pr-reviews/` — orchestrator-grade macro PR reviews
 
 The orchestrator does not dispatch work to sub-kits. It does not own
 a task list. It holds truth, makes drift visible, and gives the user
@@ -116,6 +117,7 @@ claude-orchestrator/
 │   ├── risks/                        # risk register template + format docs + matrix
 │   ├── incidents/                    # incident template + format docs + 48h rule
 │   ├── reviews/                      # weekly/monthly/quarterly templates + cadence docs
+│   ├── pr-reviews/                   # macro PR review template + when-to-review docs
 │   ├── state/
 │   │   ├── README.md
 │   │   └── sub-repos/_template.md    # per-sub-repo state file template

@@ -21,6 +21,7 @@ file changes; this is the human-readable layer above it.
 - 🛡 Risk mitigated
 - 🔥 Incident opened
 - 🩹 Incident resolved (postmortem filed)
+- 🔍 PR review filed (macro grain)
 - 🚀 Cross-repo deploy / coordinated release
 - 🎯 Review completed (weekly / monthly / quarterly)
 - 🔧 Macro state refreshed (`/audit` phase, etc.)

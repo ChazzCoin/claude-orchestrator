@@ -51,6 +51,7 @@ open question?"
 | Coordinated state transition across sub-repos with start, blast radius, close criteria | Migration in `migrations/active/` | `/migration` |
 | Risk identified (single point of failure, vendor risk, compliance gap, security exposure) | Risk file in `risks/open/` | `/risk` |
 | Cross-stack incident with cross-cutting lessons | Incident file in `incidents/` | `/incident` |
+| PR review at the macro grain (does it fit the contract?) | Review file in `pr-reviews/` | `/pr-review` |
 | Sub-repo registered or deregistered | `state/manifest.md` entry | `/register` |
 | New question / observation, deferred decision | Entry in `open-questions.md` | manual edit |
 | Strategic direction shift | `roadmap.md` update | manual edit |
@@ -81,6 +82,7 @@ appends one line. The point is one-glance history.
 - 🛡 Risk mitigated
 - 🔥 Incident opened
 - 🩹 Incident resolved
+- 🔍 PR review filed (macro grain)
 - 🚀 Cross-repo deploy / coordinated release
 - 🎯 Quarterly review completed
 - 🔧 Macro state refreshed (e.g. `/audit` Phase N landed)
@@ -133,6 +135,25 @@ Full discipline lives in [`risks/README.md`](risks/README.md). Headline:
 Empty `risks/open/` is a signal — either (a) genuinely no surfaced
 risks, (b) we haven't been looking. Quarterly review prompts an
 explicit risk-surfacing pass.
+
+---
+
+## PR review lifecycle (macro grain)
+
+Full discipline lives in [`pr-reviews/README.md`](pr-reviews/README.md). Headline:
+
+- **Not every PR.** Only when: touches an active migration, touches
+  a contract surface, touches conventions / vendors / auth /
+  schemas, or was authored by the orchestrator itself.
+- **Three outcomes:** ✅ approved · ⚠ conditional · ❌ request changes.
+- **Two artifacts may follow:** a posted PR comment (via `gh pr
+  comment`, with user approval) and any spawned artifacts (risks,
+  ADRs, contract updates) the review surfaced.
+- **Never auto-merge or auto-approve.** Reviews surface; user decides.
+- **Different from sub-kit `/review`** — that's per-repo line-level;
+  this is macro contract fit. The two compose; they don't replace.
+
+AUDIT entry with 🔍 when a review is filed.
 
 ---
 

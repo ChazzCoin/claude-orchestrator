@@ -73,6 +73,14 @@ Recently merged orchestrator PRs:
 
 - _(populate)_
 
+## Recent PR reviews on this repo
+
+Orchestrator-grade reviews filed in `pr-reviews/` for PRs in this
+repo (per [`pr-reviews/README.md`](../../pr-reviews/README.md)):
+
+- _(populate by `/sync-check` from `pr-reviews/*.md` matching
+  this `sub_repo`. Show last 5 by date with status emoji.)_
+
 ## Sub-kit advertisement *(if kit-enabled and `<sub>/.claude/active.md` present)*
 
 Latest content read from `<sub>/.claude/active.md`:

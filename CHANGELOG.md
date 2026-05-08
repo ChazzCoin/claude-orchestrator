@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.4.0 — 2026-05-08
+
+Add the macro-grade PR review structure. The orchestrator's review
+sits above sub-kit's per-repo `/review`: catches "does this PR fit
+the contract" rather than "is this line correct." Skills are
+unchanged in this release.
+
+**Reference + template (kit-managed):**
+
+- `kit/pr-reviews/README.md` — when to review (touches contract
+  surface, active migration, conventions, vendors, auth, schemas;
+  or orchestrator-authored), what to check (task alignment, code
+  reads, naming/error/auth conventions, contracts, platform
+  constraints, tech principles, cross-platform fit, gotchas, risk
+  references), three outcomes (approved / conditional / request
+  changes), what spawns artifacts (risks, ADRs, contract updates).
+- `kit/pr-reviews/_template.md` — the structured review form.
+  Frontmatter for PR URL, sub-repo, status, related artifacts;
+  body has all the checklist sections + a draft PR comment for the
+  user to approve before posting.
+
+**Wiring:**
+
+- `kit/orchestrator-rules.md`: artifact map gets a PR-review row;
+  AUDIT emoji legend gets 🔍; new "PR review lifecycle (macro
+  grain)" section parallel to migration / risk / incident.
+- `bootstrap/AUDIT.md.template` emoji legend updated to include 🔍.
+- `kit/sub-projects.md` "Git management" section gets a "Reviewing
+  PRs (orchestrator-grade)" subsection — when to invoke, what's
+  read, where output lands, never auto-approve / auto-merge.
+- `kit/state/sub-repos/_template.md` adds a "Recent PR reviews on
+  this repo" section. /sync-check populates it from `pr-reviews/`.
+- `bootstrap/CLAUDE.md.template` quick-reference artifact map +
+  "Where things live" updated with PR reviews.
+- `MANIFEST.json` and `bin/init`: kit/pr-reviews/ → pr-reviews/
+  (directory-mirror-files); pr-reviews/ scaffold dir.
+
+**Discipline:** sub-kit's per-repo `/review` runs first (line-level
+issues); orchestrator review runs second when macro context is
+needed. The two compose; their outputs live separately. Action
+items from a macro review spawn real artifacts (risks, ADRs) — a
+review with no follow-up is theater.
+
 ## 0.3.0 — 2026-05-08
 
 Wire the sub-project structure. Codifies how the orchestrator
