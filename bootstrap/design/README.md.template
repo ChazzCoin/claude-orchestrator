@@ -1,0 +1,61 @@
+# Design — {{COMPANY_NAME}}
+
+The canonical visual identity registry for {{COMPANY_NAME}}.
+Source of truth for tokens, brand language, asset pointers, and
+collateral specs.
+
+> Discipline: see `.claude/design.md` (kit-managed) for the
+> validation pattern, source-of-truth discipline, and cadence.
+
+## What's here
+
+| File | Holds |
+|---|---|
+| [`brand.md`](brand.md) | Color palette (hex codes), typography (families, scale), spacing scale, voice + tone. The high-level identity. |
+| [`assets.md`](assets.md) | Asset registry — pointers to canonical asset files (logos, icons, illustrations) in design tools (Figma, Drive, etc.) with version + owner. |
+| [`materials.md`](materials.md) | Collateral specs — business cards, letterhead, email signatures, presentation templates, swag. |
+| [`mobile.md`](mobile.md) | Mobile graphics package — app icons, splash screens, in-app artwork specs. |
+| [`web.md`](web.md) | Web design system specs — components, page templates, icon set. |
+
+## When to update
+
+- **Token / palette / typography change** → edit `brand.md`, file
+  an ADR (`/decision`) explaining why, open a migration
+  (`/migration`) if sub-repos need to update.
+- **New canonical asset** (new logo variant, new icon set) → add
+  to `assets.md` with the canonical URL.
+- **New collateral type** (new business card variant, new email
+  template) → add to `materials.md`.
+- **Asset version bump** (logo refresh) → bump version in
+  `assets.md` with a date stamp; AUDIT entry with 🎨.
+
+## What this is NOT
+
+- Not a Figma / Sketch / Adobe replacement — design tools are the
+  right place for high-fidelity work.
+- Not a deliverable ("brand guidelines.pdf") — it's the working
+  source. Deliverables are produced FROM here.
+- Not marketing copy — campaign-specific copy lives wherever
+  marketing keeps it.
+
+## Sources outside this directory
+
+If high-fidelity assets exist in design tools, point at them from
+`assets.md`. Common pointers:
+
+- Figma project URL
+- Drive folder URL
+- Brand portal URL
+- Notion page URL
+
+The orchestrator stays markdown-only. Big binaries (PSD, AI, large
+PNGs) don't get committed here — they live where they belong, with
+pointers from this directory.
+
+Small canonical assets (SVG logo, favicon, app icon at one or two
+canonical sizes) MAY be committed under `design/assets/` for
+git-diffable reference. Decide per asset based on diff usefulness.
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}

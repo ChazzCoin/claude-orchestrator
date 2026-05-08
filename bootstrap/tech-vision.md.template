@@ -1,0 +1,53 @@
+# Tech vision — {{COMPANY_NAME}}
+
+> Where this stack is headed over the next 12–18 months. Anchor for
+> ADRs and roadmap decisions. Update infrequently — typically at
+> quarterly review. Changes to this file should be paired with an
+> ADR.
+
+## North star
+
+{{ONE-PARAGRAPH — what does the stack look like when we've succeeded?
+Be concrete. "Scalable, fast, reliable" is table stakes — not a
+vision. Specific shapes: e.g. "every public endpoint contract-tested
+at the boundary; observability lives in Grafana with SLOs per
+endpoint; auth is a single library shared across iOS, web, and
+backend; deploys are one command per repo with rollback in seconds."}}
+
+## Bets we're making
+
+Each bet is: a direction, the reasoning, the alternative we
+rejected, and what would cause us to revisit.
+
+- **{{Bet 1}}**
+  - Reasoning: {{...}}
+  - Alternative considered: {{...}}
+  - Revisit if: {{...}}
+
+- **{{Bet 2}}** — _(populate)_
+
+## Bets we're explicitly NOT making
+
+- **{{Anti-bet 1}}** — {{why not, what would cause us to revisit}}
+- **{{Anti-bet 2}}** — _(populate)_
+
+## Where we are today vs. where we want to be
+
+| Concern | Today | 12–18 months out | Gap |
+|---|---|---|---|
+| {{e.g. Auth model}} | {{...}} | {{...}} | {{...}} |
+| {{e.g. Observability}} | {{...}} | {{...}} | {{...}} |
+| {{e.g. Contract testing}} | {{...}} | {{...}} | {{...}} |
+| {{e.g. Deploy ergonomics}} | {{...}} | {{...}} | {{...}} |
+
+## What this vision is NOT
+
+- Not a roadmap (see `roadmap.md` for sequenced work)
+- Not a wish list (each bet should have a credible path)
+- Not eternal — re-examined every quarter, rewritten when the
+  business shifts
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}
+**Next review:** {{quarterly review YYYY-QN}}

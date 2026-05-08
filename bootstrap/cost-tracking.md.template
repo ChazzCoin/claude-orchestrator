@@ -1,0 +1,54 @@
+# Cost tracking
+
+Lightweight CTO-grade cost tracker. Real numbers come from cloud
+consoles + vendor invoices. This file holds the *trend* and the
+*actions taken*.
+
+> Updated monthly during the monthly review.
+
+## Current run rate
+
+| Category | 2 months ago | Last month | This month | Trend |
+|---|---|---|---|---|
+| Cloud — compute | {{$}} | {{$}} | {{$}} | {{↑/↓/→}} |
+| Cloud — data (storage, transfer, db) | {{$}} | {{$}} | {{$}} | {{...}} |
+| Vendor SaaS | {{$}} | {{$}} | {{$}} | {{...}} |
+| AI/ML inference | {{$}} | {{$}} | {{$}} | {{...}} |
+| **Total** | {{$}} | {{$}} | {{$}} | {{...}} |
+
+## Per sub-repo / domain *(if attributable)*
+
+| Sub-repo / domain | Last month | This month | Notes |
+|---|---|---|---|
+| {{api}} | {{$}} | {{$}} | {{...}} |
+| {{web}} | {{$}} | {{$}} | {{...}} |
+| {{ios}} (build / signing / TestFlight) | {{$}} | {{$}} | {{...}} |
+
+## Anomalies / decisions
+
+Log significant events: cost spikes, deliberate increases, savings
+realized. One line per event. Newest on top.
+
+- **YYYY-MM-DD** — _(populate as cost shifts trigger action)_
+
+## Budget guardrails *(if any)*
+
+- {{Category}}: target ≤ {{$}}/mo. Alert when exceeded.
+- {{...}}
+
+## Sources
+
+Where the numbers come from. So next month's review knows where to
+look.
+
+- Cloud compute: {{e.g. "AWS Cost Explorer monthly summary"}}
+- Cloud data: {{...}}
+- Vendor SaaS: {{e.g. "monthly aggregation of vendor invoices in
+  Brex/Ramp"}}
+- AI/ML: {{...}}
+
+---
+
+**Skip until ready:** if you don't have monthly cost discipline yet,
+this file stays as scaffolding. Don't make up numbers — that's
+fiction, not tracking.

@@ -1,0 +1,67 @@
+# Security posture
+
+What's audited, what's pending, what's known-broken.
+
+> Updated whenever: a finding surfaces, a control changes, an audit
+> completes, or at the monthly review.
+
+## Active audits / certifications
+
+| Framework | Status | Last audit | Next milestone | Owner |
+|---|---|---|---|---|
+| {{e.g. SOC2 Type II}} | {{in-progress / certified / lapsed}} | {{YYYY-MM-DD}} | {{...}} | {{...}} |
+| {{e.g. ISO 27001}} | {{...}} | | | |
+
+If none apply, this section says "n/a — no active certifications."
+
+## Known gaps
+
+Things we know are broken or missing. Each gets surfaced as a risk
+in `risks/open/` if not yet mitigated.
+
+| Gap | Surfaced | Risk file | Status | ETA |
+|---|---|---|---|---|
+| {{e.g. secrets in old git history}} | {{YYYY-MM-DD}} | {{risks/open/...md}} | {{open / mitigating / mitigated}} | {{...}} |
+
+## Practices
+
+### Secrets management
+
+- **Where secrets live:** {{e.g. Doppler / Vault / AWS Secrets Manager}}
+- **Rotation cadence:** {{e.g. quarterly for shared keys, never for
+  per-environment}}
+- **Who has access:** {{...}}
+- **What's NOT in the secret store *(known anti-pattern)*:** {{...}}
+
+### Dependency security
+
+- **Audit cadence:** {{per release + quarterly sweep}}
+- **CVE response time:** {{HIGH/CRITICAL: 48h; MEDIUM: next release}}
+- **Tools:** {{e.g. npm audit, Dependabot, Snyk}}
+
+### Access control
+
+- **Production access:** {{who, MFA enforced, reviewed cadence}}
+- **CI/CD access:** {{...}}
+- **Database access:** {{...}}
+- **Cloud account access:** {{...}}
+
+### Incident response (security)
+
+- **Who's on call:** {{...}}
+- **Escalation:** {{see ownership.md}}
+- **Communication:** {{e.g. dedicated #security-incident channel,
+  public status page}}
+- **First-N-minutes runbook:** {{path to runbook or "not yet
+  written — risk filed"}}
+
+## Recent security events
+
+| Date | Event | Outcome |
+|---|---|---|
+| {{YYYY-MM-DD}} | _(populate — patches, rotations, incidents)_ | |
+
+---
+
+**Quarterly review:** walk this file. Have we drifted? Have any
+"known gaps" aged without movement? File risks for unattended ones.

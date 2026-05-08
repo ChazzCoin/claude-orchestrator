@@ -1,0 +1,165 @@
+{
+  "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
+  "name": "claude-orchestrator",
+  "version": "0.1.0",
+  "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
+  "source": {
+    "repo": "https://github.com/ChazzCoin/claude-orchestrator",
+    "branch": "main"
+  },
+  "kit": {
+    "description": "Files synced into target instances. Updates here propagate via /sync.",
+    "files": [
+      {
+        "from": "kit/orchestrator-rules.md",
+        "to": ".claude/orchestrator-rules.md",
+        "policy": "file-replace",
+        "note": "CTO operating discipline. Generic across all instances. The orchestrator's analog of claude-kit's task-rules.md."
+      },
+      {
+        "from": "kit/sub-projects.md",
+        "to": ".claude/sub-projects.md",
+        "policy": "file-replace",
+        "note": "How the orchestrator works with sub-projects (kit-enabled vs not, read/write discipline, git management). Generic across all instances."
+      },
+      {
+        "from": "kit/claude-kit-reference.md",
+        "to": ".claude/claude-kit-reference.md",
+        "policy": "file-replace",
+        "note": "Pinned reference for claude-kit's file shape and conventions. Re-synced manually when claude-kit changes."
+      },
+      {
+        "from": "kit/design.md",
+        "to": ".claude/design.md",
+        "policy": "file-replace",
+        "note": "Design standards discipline doc — what's tracked, source-of-truth rules, validation pattern. Generic across instances."
+      },
+      {
+        "from": "kit/sub-project-registration.md",
+        "to": ".claude/sub-project-registration.md",
+        "policy": "file-replace",
+        "note": "Registration workflow doc — sibling layout, three input cases, clone target convention, anti-patterns. Generic across instances."
+      },
+      {
+        "from": "kit/state/sub-repos/_template.md",
+        "to": "state/sub-repos/_template.md",
+        "policy": "file-replace",
+        "note": "Per-sub-repo state file template. Each registered sub-repo gets state/sub-repos/<name>.md instantiated from this."
+      },
+      {
+        "from": "kit/skills/",
+        "to": ".claude/skills/",
+        "policy": "directory-mirror",
+        "note": "Each subdirectory under kit/skills/ is a skill. Mirrored into the instance's .claude/skills/."
+      },
+      {
+        "from": "kit/decisions/",
+        "to": "decisions/",
+        "policy": "directory-mirror-files",
+        "note": "ADR template and format docs."
+      },
+      {
+        "from": "kit/features/",
+        "to": "features/",
+        "policy": "directory-mirror-files",
+        "note": "Feature plan template and format docs."
+      },
+      {
+        "from": "kit/migrations/",
+        "to": "migrations/",
+        "policy": "directory-mirror-files",
+        "note": "Migration template and format docs. Top-level files only — does not touch active/ or closed/."
+      },
+      {
+        "from": "kit/risks/",
+        "to": "risks/",
+        "policy": "directory-mirror-files",
+        "note": "Risk register template and format docs. Top-level files only — does not touch open/ or mitigated/ instance content."
+      },
+      {
+        "from": "kit/incidents/",
+        "to": "incidents/",
+        "policy": "directory-mirror-files",
+        "note": "Incident template and format docs. Top-level files only — does not touch instance incident files."
+      },
+      {
+        "from": "kit/reviews/",
+        "to": "reviews/",
+        "policy": "directory-mirror-files",
+        "note": "Review templates (weekly/monthly/quarterly) + format docs. Top-level files only — does not touch weekly/ monthly/ quarterly/ instance content."
+      },
+      {
+        "from": "kit/pr-reviews/",
+        "to": "pr-reviews/",
+        "policy": "directory-mirror-files",
+        "note": "PR review template + format docs (orchestrator-grade macro reviews). Top-level files only — does not touch instance review files."
+      },
+      {
+        "from": "kit/state/README.md",
+        "to": "state/README.md",
+        "policy": "file-replace",
+        "note": "State directory format documentation."
+      },
+      {
+        "from": "kit/templates/",
+        "to": ".claude/templates/",
+        "policy": "directory-mirror",
+        "note": "Template files used by skills (e.g. /migration reads sub-repo-notices/migrations.md.template). Lives under .claude/ because it's kit machinery, not user-authored content."
+      }
+    ]
+  },
+  "bootstrap": {
+    "description": "One-time files copied at init only. Never overwritten by /sync.",
+    "files": [
+      { "from": "bootstrap/CLAUDE.md.template",                     "to": "CLAUDE.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/README.md.template",                     "to": "README.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/roadmap.md.template",                    "to": "roadmap.md",                 "policy": "skip-if-exists" },
+      { "from": "bootstrap/open-questions.md.template",             "to": "open-questions.md",          "policy": "skip-if-exists" },
+      { "from": "bootstrap/platform-constraints.md.template",       "to": "platform-constraints.md",    "policy": "skip-if-exists" },
+      { "from": "bootstrap/stack/inventory.md.template",            "to": "stack/inventory.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/stack/infra-map.md.template",            "to": "stack/infra-map.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/models.md.template",           "to": "contracts/models.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/endpoints.md.template",        "to": "contracts/endpoints.md",     "policy": "skip-if-exists" },
+      { "from": "bootstrap/contracts/events.md.template",           "to": "contracts/events.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/auth.md.template",           "to": "conventions/auth.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/error-handling.md.template", "to": "conventions/error-handling.md", "policy": "skip-if-exists" },
+      { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
+      { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
+      { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/README.md.template",              "to": "design/README.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/brand.md.template",               "to": "design/brand.md",            "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/assets.md.template",              "to": "design/assets.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/materials.md.template",           "to": "design/materials.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/mobile.md.template",              "to": "design/mobile.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/web.md.template",                 "to": "design/web.md",              "policy": "skip-if-exists" },
+      { "from": "bootstrap/tech-vision.md.template",                "to": "tech-vision.md",             "policy": "skip-if-exists" },
+      { "from": "bootstrap/tech-principles.md.template",            "to": "tech-principles.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/vendors.md.template",                    "to": "vendors.md",                 "policy": "skip-if-exists" },
+      { "from": "bootstrap/cost-tracking.md.template",              "to": "cost-tracking.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/security-posture.md.template",           "to": "security-posture.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/compliance.md.template",                 "to": "compliance.md",              "policy": "skip-if-exists" },
+      { "from": "bootstrap/ownership.md.template",                  "to": "ownership.md",               "policy": "skip-if-exists" },
+      { "from": "bootstrap/slos.md.template",                       "to": "slos.md",                    "policy": "skip-if-exists" },
+      {
+        "from": "bootstrap/foundation.json",
+        "to": ".claude/foundation.json",
+        "policy": "init-only-with-sha",
+        "note": "Stamped with the kit's HEAD commit SHA at init time."
+      }
+    ]
+  },
+  "scaffold": {
+    "description": "Empty directories created at init.",
+    "directories": [
+      "migrations/active",
+      "migrations/closed",
+      "risks/open",
+      "risks/mitigated",
+      "reviews/weekly",
+      "reviews/monthly",
+      "reviews/quarterly",
+      "state/sub-repos",
+      "pr-reviews"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+# Active orchestrator migrations
+
+> **Auto-managed.** This file is written by the company orchestrator's
+> `/migration` skill. Hand edits get overwritten the next time
+> `/migration` touches it. If a migration listed here is wrong or
+> stale, fix it in the orchestrator at `{{ORCHESTRATOR_PATH}}`, not
+> here.
+>
+> **Source orchestrator:** `{{ORCHESTRATOR_PATH}}`
+> **Last written:** `{{TIMESTAMP}}` by `{{SKILL}}`
+
+Cross-repo migrations affecting **{{REPO_NAME}}**. Read the linked
+migration file in the orchestrator before starting related work.
+
+## Open
+
+<!--
+  Each open migration affecting this repo gets one entry, in this shape:
+
+  - **<id>** — <one-line summary from the migration body>.
+    - **Status:** <in-progress | validating>
+    - **This repo's part:** <⚪ not started | 🟡 in progress | ✅ done>
+    - **Migration file:** [`<id>.md`](<absolute_path_to_orchestrator>/migrations/active/<id>.md)
+
+  Order matches the orchestrator's `migrations/active/` directory
+  (newest first). The list is regenerated wholesale each time
+  `/migration` touches this file — entries don't accumulate stale.
+
+  When this section becomes empty (last migration touching this repo
+  closed), `/migration` deletes the file rather than leaving it
+  empty.
+-->
+
+{{MIGRATION_ENTRIES}}

@@ -1,0 +1,66 @@
+# SLOs
+
+Service-level objectives per sub-repo (where applicable).
+
+> SLOs are aspirational targets *backed by measurement*. If we're
+> not measuring it, it's not an SLO — it's a wish. Add a row only
+> when the metric is actually instrumented.
+
+## Per sub-repo
+
+### {{api}}
+
+| Metric | Target | Current | Last 30d | Source |
+|---|---|---|---|---|
+| {{p95 latency}} | {{< 200ms}} | {{...}} | {{...}} | {{Grafana / dashboard URL}} |
+| {{availability}} | {{99.9%}} | {{...}} | {{...}} | {{...}} |
+| {{error rate}} | {{< 0.1%}} | {{...}} | {{...}} | {{...}} |
+
+### {{web}}
+
+| Metric | Target | Current | Last 30d | Source |
+|---|---|---|---|---|
+| {{LCP p75}} | {{< 2.5s}} | {{...}} | {{...}} | {{...}} |
+| {{CLS p75}} | {{< 0.1}} | {{...}} | {{...}} | {{...}} |
+| {{Error rate (Sentry)}} | {{< 1% sessions}} | {{...}} | {{...}} | {{...}} |
+
+### {{ios}}
+
+| Metric | Target | Current | Last 30d | Source |
+|---|---|---|---|---|
+| {{Crash-free sessions}} | {{> 99.5%}} | {{...}} | {{...}} | {{...}} |
+| {{Cold start p95}} | {{< 1.5s}} | {{...}} | {{...}} | {{...}} |
+
+## Cross-stack SLOs *(end-to-end)*
+
+If applicable — e.g. checkout latency, login success rate.
+
+| Metric | Target | Current | Source |
+|---|---|---|---|
+| _(populate)_ | | | |
+
+## Error budget posture
+
+If using error budgets (Google SRE-style):
+
+| Service | Budget remaining (this quarter) | Burn rate | Action |
+|---|---|---|---|
+| _(populate when SLOs are tracked)_ | | | |
+
+## Untracked but worth measuring
+
+Things you know matter but aren't yet instrumented. File a risk in
+`risks/open/` for anything genuinely unmeasured but business-
+critical.
+
+- _(populate or "all critical metrics tracked")_
+
+---
+
+**Cadence:** updated monthly during monthly review. Trend tracked
+quarterly.
+
+**Discipline:** if a row's "Current" or "Last 30d" column is
+empty for three monthly reviews running, the metric isn't really
+tracked — drop the row or fix the instrumentation. Empty data
+masquerading as tracked is worse than admitting it isn't.

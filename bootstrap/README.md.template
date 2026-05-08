@@ -1,0 +1,87 @@
+# {{COMPANY_NAME}} Orchestrator
+
+Macro architectural truth for **{{COMPANY_NAME}}**'s stack — registered
+sub-repos, contracts, conventions, decisions, migrations, roadmap.
+
+This is a [claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator)
+instance. It does not dispatch work to sub-kits and does not own a task
+list. It holds truth, makes drift visible, and gives one reasoning
+surface across software, infra, and product.
+
+## Start a session
+
+Open Claude Code in this directory. From there:
+
+**Orient:**
+- `/brief` — synthesized daily orientation (what changed, what's open, what's stuck)
+- `/status` — current macro picture
+- `/onboard` — full walkthrough for a new collaborator (or future-you)
+
+**Populate / refresh state:**
+- `/audit` — interview-driven macro audit (stack, contracts, conventions, constraints)
+- `/register` — add a sub-repo to `state/manifest.md`
+
+**File artifacts:**
+- `/decision` — ADR
+- `/feature` — cross-cutting feature plan
+- `/migration` — open, update, list, close a cross-repo migration
+- `/risk` — file or update a risk
+- `/incident` — log a cross-stack incident + postmortem
+
+**Recurring cadence:**
+- `/review weekly` — Friday EOD or Monday AM (~15 min)
+- `/review monthly` — first week of next month (~45 min)
+- `/review quarterly` — first week of next quarter (~half-day, mandatory risk-surfacing pass)
+
+**Drift / kit:**
+- `/sync-check` — drift between sub-repos and orchestrator's contracts
+- `/sync` — pull kit updates from upstream
+
+Run `/skills` for the full live index.
+
+## Sub-kit integration
+
+Each sub-repo's `CLAUDE.md` should add a pointer back to this
+orchestrator:
+
+> **Macro architecture and contracts:** see `~/path/to/{{COMPANY_NAME}}-orchestrator/`.
+> Read `stack/inventory.md`, `contracts/`, and any `features/<x>.md`
+> matching current work before making cross-platform decisions.
+
+The orchestrator can write migration notices into each sub-repo's
+`.claude/active-migrations.md` so a sub-kit notices an open migration on
+session start. That is the only orchestrator → sub-repo write path.
+
+## Operating discipline
+
+The CTO-level operating model — read order, artifact map, audit log
+discipline, migration / risk / incident / review lifecycles — lives
+in [`.claude/orchestrator-rules.md`](.claude/orchestrator-rules.md).
+That file is kit-managed and synced via `/sync`.
+
+This instance's CLAUDE.md holds company-specific behaviors and
+identity; orchestrator-rules.md holds the generic discipline that
+applies to every orchestrator instance.
+
+## Where things live
+
+- **Anchors:** `tech-vision.md`, `tech-principles.md`,
+  `platform-constraints.md`
+- **Active state:** `roadmap.md`, `open-questions.md`, `AUDIT.md`,
+  `state/manifest.md`
+- **Macro state:** `stack/`, `contracts/`, `conventions/`
+- **Registries:** `vendors.md`, `ownership.md`, `slos.md`,
+  `cost-tracking.md`, `security-posture.md`, `compliance.md`
+- **Artifacts:** `decisions/`, `features/`,
+  `migrations/{active,closed}/`, `risks/{open,mitigated}/`,
+  `incidents/`, `reviews/{weekly,monthly,quarterly}/`
+
+## Updates
+
+Bootstrapped from the
+[claude-orchestrator](https://github.com/ChazzCoin/claude-orchestrator)
+kit. Run `/sync` to pull kit updates (skills, generic templates,
+orchestrator-rules.md). Bootstrap content (CLAUDE.md, this README,
+roadmap, anchors, registries, AUDIT, stack/, contracts/, conventions/,
+state/manifest.md) belongs to this instance and is never touched by
+`/sync`.

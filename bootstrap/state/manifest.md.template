@@ -1,0 +1,76 @@
+# Sub-repo manifest
+
+Index of registered sub-repos in this company's stack. Authoritative
+— the orchestrator consults this file to know what to query, what to
+write notices into, and which depth file to read for each.
+
+Update via `/register` or by editing this file directly.
+
+> **The index, not the depth.** Each entry below is metadata only.
+> Per-sub-repo accumulated state lives at
+> [`state/sub-repos/<name>.md`](../../state/sub-repos/) — that's
+> where current branch, HEAD, advertisement, and references to all
+> orchestrator artifacts touching the repo live.
+>
+> **Registration discipline.** See
+> [`.claude/sub-project-registration.md`](../../.claude/sub-project-registration.md)
+> for the input cases (existing path / GitHub URL / unknown), the
+> clone target convention, and the anti-patterns. The orchestrator
+> doesn't move existing repos — it adapts to where they live.
+
+## Recommended layout
+
+The orchestrator lives as a **sibling** of the registered sub-repos:
+
+```
+~/ChazzCoin/                        (or wherever your code lives)
+├── {{COMPANY_NAME}}-orchestrator/  this orchestrator instance
+├── {{COMPANY_NAME}}-api/           registered sub-repo
+├── {{COMPANY_NAME}}-ios/           registered sub-repo
+├── {{COMPANY_NAME}}-web/           registered sub-repo
+└── {{COMPANY_NAME}}-devops/        registered sub-repo
+```
+
+Recommended, not required. The manifest stores absolute paths, so
+unconventional layouts work — but defaults assume siblings.
+
+## Format
+
+```
+## <name>
+- **Role:** api | ios | web | devops | other
+- **Local path:** /absolute/path/to/repo
+- **Git remote:** <url>
+- **Default branch:** main
+- **Kit-enabled:** true | false | unknown
+- **Registered:** YYYY-MM-DD
+- **Last synced HEAD:** <sha or "never">
+- **Last synced at:** YYYY-MM-DD or "never"
+- **State file:** [state/sub-repos/<name>.md](state/sub-repos/<name>.md)
+- **Notes:** <one-line — anything that affects how state is queried>
+```
+
+**Kit-enabled detection:** `true` if `<local-path>/.claude/foundation.json`
+exists with `kit.repo` containing `claude-kit`. `false` if it doesn't.
+`unknown` only during the moment between registration and the first
+`/sync-check`.
+
+---
+
+## Sub-repos
+
+_(populate via /register or by hand)_
+
+<!--
+## api
+- **Role:** api
+- **Local path:** /Users/<you>/ChazzCoin/<company>-api      (sibling of the orchestrator)
+- **Git remote:** git@github.com:<org>/<company>-api.git
+- **Default branch:** main
+- **Kit-enabled:** true
+- **Registered:** YYYY-MM-DD
+- **Last synced HEAD:** never
+- **Last synced at:** never
+- **State file:** [state/sub-repos/api.md](state/sub-repos/api.md)
+- **Notes:**
+-->

@@ -1,0 +1,154 @@
+# Collateral materials — {{COMPANY_NAME}}
+
+Specs for printed and digital collateral. Each entry has the
+spec, the asset pointer, and the variants.
+
+> Update when a collateral piece is added, refreshed, or
+> deprecated.
+
+## Email signature
+
+### Standard signature
+
+**Spec:**
+```
+{{First Last}}
+{{Title}} | {{COMPANY_NAME}}
+{{phone}} · {{email}}
+{{website}}
+
+[Optional: {{calendly URL}}]
+```
+
+**Visual treatment:**
+- Font: {{system default / Inter / specific}}
+- Name color: `{{#hex from brand.md primary}}`
+- Title color: `{{#hex neutral}}`
+- Logo: {{small mark from `assets.md` "Logos > Mark", 32×32 PNG}}
+- Disclaimer: {{none / "Confidential — see footer" / specific text}}
+
+**Source files:** {{Drive / Figma URL}}
+
+### Variants
+
+- **Standard** — for all internal employees
+- **Founder/CEO** — {{differences if any}}
+- **Sales** — {{includes calendly link, etc.}}
+- **Support** — {{includes ticket portal, etc.}}
+
+---
+
+## Business cards
+
+**Spec:**
+- Size: {{3.5" × 2" / 85×55mm}}
+- Stock: {{...}}
+- Print: {{4-color, soft-touch / specific finish}}
+- Bleed: {{0.125"}}
+
+**Layout:**
+- Front: {{name, title, contact info; logo}}
+- Back: {{logo / tagline / blank}}
+
+**Typography (from `brand.md`):**
+- Name: {{font, size, color}}
+- Title: {{font, size, color}}
+- Contact: {{font, size, color}}
+
+**Source files:** {{...}}
+
+**Vendor:** {{e.g. Moo, local printer}}
+
+### Variants
+
+- **Standard** — all employees
+- **Founder/exec** — {{differences}}
+- **Event / press** — {{differences}}
+
+---
+
+## Letterhead
+
+**Spec:**
+- Size: {{US Letter 8.5×11 / A4 210×297}}
+- Margins: {{...}}
+- Header: {{logo placement, contact info}}
+- Footer: {{address, registration info, legal}}
+
+**Source files:** {{...}}
+
+---
+
+## Presentation templates
+
+**Decks:**
+- **Internal** — Google Slides / Keynote: {{URL}}
+- **Sales** — {{URL}}
+- **Investor** — {{URL}}
+- **Product / launch** — {{URL}}
+
+**Common slide types:**
+- Title / cover
+- Section divider
+- Content (text + image)
+- Quote / testimonial
+- Data / chart
+- Closing / CTA
+
+**Typography from brand.md.** Charts use semantic colors
+(success / warning / error / info) for status; primary palette for
+categories.
+
+---
+
+## Social media
+
+| Platform | Asset type | Spec |
+|---|---|---|
+| LinkedIn (company page) | Banner | {{1128 × 191}} |
+| LinkedIn (personal) | Banner | {{1584 × 396}} |
+| Twitter / X | Header | {{1500 × 500}} |
+| Open Graph (default) | OG image | {{1200 × 630}} |
+| Email header | Banner | {{600 × 200}} |
+
+Source files: {{Figma / Drive URL}}
+
+---
+
+## Swag / merchandise
+
+| Item | Spec | Vendor | Quantity in stock |
+|---|---|---|---|
+| {{T-shirts}} | {{logo placement, color, sizes}} | {{vendor}} | {{...}} |
+| {{Stickers}} | {{...}} | {{...}} | {{...}} |
+| {{Notebooks}} | {{...}} | {{...}} | {{...}} |
+
+---
+
+## Press kit
+
+**Contents:**
+- Logo pack (per `assets.md`)
+- Founder photos (per `assets.md`)
+- Boilerplate company description (in `tech-vision.md` or here)
+- Recent press mentions
+- Contact for press inquiries
+
+**Where:** {{press kit URL or page}}
+
+---
+
+## Discipline
+
+- Each material references brand.md for tokens (colors, type) —
+  not hardcoded copies.
+- Source files live in design tools; this file holds the spec +
+  pointer.
+- Version each material when redesigned — keep older versions
+  referenced for legacy artifacts.
+- Print orders pause if `brand.md` is mid-update — wait for the
+  ADR to land before re-ordering.
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}

@@ -1,0 +1,38 @@
+# AUDIT
+
+Chronological log of meaningful macro actions on this orchestrator.
+Append-only. Every closing skill (or manual durable action) writes
+one line here.
+
+The point is one-glance history. Git log is the ground truth for
+file changes; this is the human-readable layer above it.
+
+> See `.claude/orchestrator-rules.md` "Audit log discipline" for the
+> exact format and emoji set.
+
+---
+
+## Emoji legend
+
+- 📦 Migration shipped / closed
+- 📜 ADR filed
+- 🏗 Feature plan filed
+- ⚠️ Risk surfaced / accepted
+- 🛡 Risk mitigated
+- 🔥 Incident opened
+- 🩹 Incident resolved (postmortem filed)
+- 🔍 PR review filed (macro grain)
+- 🚀 Cross-repo deploy / coordinated release
+- 🎯 Review completed (weekly / monthly / quarterly)
+- 🔧 Macro state refreshed (`/audit` phase, etc.)
+- 🤝 Sub-repo registered / deregistered
+- 🚨 Code touch under user override (orchestrator hand-edited a running file)
+- 🎨 Design / brand / asset change (token, asset version, collateral spec)
+
+---
+
+## YYYY-MM-DD
+
+_(newest entries on top within each date section)_
+
+_(populate as actions ship)_

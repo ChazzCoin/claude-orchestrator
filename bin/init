@@ -1,0 +1,297 @@
+#!/usr/bin/env bash
+#
+# claude-orchestrator init — bootstrap a <company>-orchestrator instance.
+#
+# Usage:
+#   claude-orchestrator/bin/init [target-dir]
+#
+# If [target-dir] is omitted, the current working directory is used.
+#
+# Behavior:
+#   - kit/skills/<name>/        → <target>/.claude/skills/<name>/   (overwrite, additive)
+#   - kit/decisions/*           → <target>/decisions/*              (overwrite)
+#   - kit/features/*            → <target>/features/*               (overwrite)
+#   - kit/migrations/*.md       → <target>/migrations/*.md          (overwrite, top-level only)
+#   - kit/state/README.md       → <target>/state/README.md          (overwrite)
+#   - bootstrap/<x>.template    → <target>/<x>                      (skip-if-exists)
+#   - .claude/foundation.json stamped with this kit's HEAD commit SHA
+#   - migrations/active/, migrations/closed/ scaffolded with .gitkeep
+#   - .gitignore created if missing
+#
+# This script uses cp + mkdir, no curl, no network calls. The kit must
+# already be on disk (clone it first).
+
+set -euo pipefail
+
+TARGET="${1:-$PWD}"
+TARGET="$(cd "$TARGET" && pwd)"
+
+KIT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+KIT_REPO_URL="https://github.com/ChazzCoin/claude-orchestrator"
+
+if git -C "$KIT_DIR" rev-parse HEAD >/dev/null 2>&1; then
+  KIT_SHA="$(git -C "$KIT_DIR" rev-parse HEAD)"
+  KIT_BRANCH="$(git -C "$KIT_DIR" rev-parse --abbrev-ref HEAD)"
+else
+  KIT_SHA="unpinned"
+  KIT_BRANCH="main"
+fi
+
+echo "claude-orchestrator init"
+echo "  source: $KIT_DIR (sha: ${KIT_SHA:0:12}, branch: $KIT_BRANCH)"
+echo "  target: $TARGET"
+echo
+
+# --- 1. Sync kit/ files (overwrite policy) ---------------------------
+
+echo "→ Installing kit files into $TARGET/"
+
+# kit/orchestrator-rules.md → .claude/orchestrator-rules.md
+mkdir -p "$TARGET/.claude"
+if [ -f "$KIT_DIR/kit/orchestrator-rules.md" ]; then
+  cp "$KIT_DIR/kit/orchestrator-rules.md" "$TARGET/.claude/orchestrator-rules.md"
+  echo "    rules:    .claude/orchestrator-rules.md"
+fi
+
+# kit/sub-projects.md → .claude/sub-projects.md
+if [ -f "$KIT_DIR/kit/sub-projects.md" ]; then
+  cp "$KIT_DIR/kit/sub-projects.md" "$TARGET/.claude/sub-projects.md"
+  echo "    rules:    .claude/sub-projects.md"
+fi
+
+# kit/claude-kit-reference.md → .claude/claude-kit-reference.md
+if [ -f "$KIT_DIR/kit/claude-kit-reference.md" ]; then
+  cp "$KIT_DIR/kit/claude-kit-reference.md" "$TARGET/.claude/claude-kit-reference.md"
+  echo "    rules:    .claude/claude-kit-reference.md"
+fi
+
+# kit/design.md → .claude/design.md
+if [ -f "$KIT_DIR/kit/design.md" ]; then
+  cp "$KIT_DIR/kit/design.md" "$TARGET/.claude/design.md"
+  echo "    rules:    .claude/design.md"
+fi
+
+# kit/sub-project-registration.md → .claude/sub-project-registration.md
+if [ -f "$KIT_DIR/kit/sub-project-registration.md" ]; then
+  cp "$KIT_DIR/kit/sub-project-registration.md" "$TARGET/.claude/sub-project-registration.md"
+  echo "    rules:    .claude/sub-project-registration.md"
+fi
+
+# kit/state/sub-repos/_template.md → state/sub-repos/_template.md
+mkdir -p "$TARGET/state/sub-repos"
+if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
+  cp "$KIT_DIR/kit/state/sub-repos/_template.md" "$TARGET/state/sub-repos/_template.md"
+  echo "    template: state/sub-repos/_template.md"
+fi
+
+mkdir -p "$TARGET/.claude/skills"
+if [ -d "$KIT_DIR/kit/skills" ]; then
+  for skill in "$KIT_DIR/kit/skills"/*/; do
+    [ -d "$skill" ] || continue
+    name="$(basename "$skill")"
+    cp -R "$skill" "$TARGET/.claude/skills/$name"
+    echo "    skill:    $name"
+  done
+fi
+
+mirror_files() {
+  local src_dir="$1"
+  local dst_dir="$2"
+  local label_prefix="$3"
+  [ -d "$src_dir" ] || return 0
+  mkdir -p "$dst_dir"
+  for f in "$src_dir"/*; do
+    [ -f "$f" ] || continue
+    name="$(basename "$f")"
+    cp "$f" "$dst_dir/$name"
+    echo "    template: $label_prefix/$name"
+  done
+}
+
+mirror_files "$KIT_DIR/kit/decisions"  "$TARGET/decisions"  "decisions"
+mirror_files "$KIT_DIR/kit/features"   "$TARGET/features"   "features"
+mirror_files "$KIT_DIR/kit/migrations" "$TARGET/migrations" "migrations"
+mirror_files "$KIT_DIR/kit/risks"      "$TARGET/risks"      "risks"
+mirror_files "$KIT_DIR/kit/incidents"  "$TARGET/incidents"  "incidents"
+mirror_files "$KIT_DIR/kit/reviews"    "$TARGET/reviews"    "reviews"
+mirror_files "$KIT_DIR/kit/pr-reviews" "$TARGET/pr-reviews" "pr-reviews"
+
+mkdir -p "$TARGET/state"
+if [ -f "$KIT_DIR/kit/state/README.md" ]; then
+  cp "$KIT_DIR/kit/state/README.md" "$TARGET/state/README.md"
+  echo "    template: state/README.md"
+fi
+
+# kit/templates/ → .claude/templates/  (used by skills like /migration)
+if [ -d "$KIT_DIR/kit/templates" ]; then
+  mkdir -p "$TARGET/.claude/templates"
+  for sub in "$KIT_DIR/kit/templates"/*/; do
+    [ -d "$sub" ] || continue
+    name="$(basename "$sub")"
+    cp -R "$sub" "$TARGET/.claude/templates/$name"
+    echo "    template: .claude/templates/$name/"
+  done
+fi
+
+# --- 2. Bootstrap files (skip if exists) -----------------------------
+
+echo
+echo "→ Installing bootstrap templates (preserving any existing files)"
+
+bootstrap_copy() {
+  local src="$1"
+  local dst="$2"
+  local label="$3"
+  if [ -f "$dst" ]; then
+    echo "    skip:    $label  (exists)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  echo "    create:  $label"
+}
+
+bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"                     "$TARGET/CLAUDE.md"                  "CLAUDE.md"
+bootstrap_copy "$KIT_DIR/bootstrap/README.md.template"                     "$TARGET/README.md"                  "README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/roadmap.md.template"                    "$TARGET/roadmap.md"                 "roadmap.md"
+bootstrap_copy "$KIT_DIR/bootstrap/open-questions.md.template"             "$TARGET/open-questions.md"          "open-questions.md"
+bootstrap_copy "$KIT_DIR/bootstrap/platform-constraints.md.template"       "$TARGET/platform-constraints.md"    "platform-constraints.md"
+bootstrap_copy "$KIT_DIR/bootstrap/stack/inventory.md.template"            "$TARGET/stack/inventory.md"         "stack/inventory.md"
+bootstrap_copy "$KIT_DIR/bootstrap/stack/infra-map.md.template"            "$TARGET/stack/infra-map.md"         "stack/infra-map.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/models.md.template"           "$TARGET/contracts/models.md"        "contracts/models.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/endpoints.md.template"        "$TARGET/contracts/endpoints.md"     "contracts/endpoints.md"
+bootstrap_copy "$KIT_DIR/bootstrap/contracts/events.md.template"           "$TARGET/contracts/events.md"        "contracts/events.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/auth.md.template"           "$TARGET/conventions/auth.md"        "conventions/auth.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/error-handling.md.template" "$TARGET/conventions/error-handling.md" "conventions/error-handling.md"
+bootstrap_copy "$KIT_DIR/bootstrap/conventions/naming.md.template"         "$TARGET/conventions/naming.md"      "conventions/naming.md"
+bootstrap_copy "$KIT_DIR/bootstrap/state/manifest.md.template"             "$TARGET/state/manifest.md"          "state/manifest.md"
+bootstrap_copy "$KIT_DIR/bootstrap/AUDIT.md.template"                      "$TARGET/AUDIT.md"                   "AUDIT.md"
+bootstrap_copy "$KIT_DIR/bootstrap/tech-vision.md.template"                "$TARGET/tech-vision.md"             "tech-vision.md"
+bootstrap_copy "$KIT_DIR/bootstrap/tech-principles.md.template"            "$TARGET/tech-principles.md"         "tech-principles.md"
+bootstrap_copy "$KIT_DIR/bootstrap/vendors.md.template"                    "$TARGET/vendors.md"                 "vendors.md"
+bootstrap_copy "$KIT_DIR/bootstrap/cost-tracking.md.template"              "$TARGET/cost-tracking.md"           "cost-tracking.md"
+bootstrap_copy "$KIT_DIR/bootstrap/security-posture.md.template"           "$TARGET/security-posture.md"        "security-posture.md"
+bootstrap_copy "$KIT_DIR/bootstrap/compliance.md.template"                 "$TARGET/compliance.md"              "compliance.md"
+bootstrap_copy "$KIT_DIR/bootstrap/ownership.md.template"                  "$TARGET/ownership.md"               "ownership.md"
+bootstrap_copy "$KIT_DIR/bootstrap/slos.md.template"                       "$TARGET/slos.md"                    "slos.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/README.md.template"              "$TARGET/design/README.md"           "design/README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/brand.md.template"               "$TARGET/design/brand.md"            "design/brand.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/assets.md.template"              "$TARGET/design/assets.md"           "design/assets.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/materials.md.template"           "$TARGET/design/materials.md"        "design/materials.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/mobile.md.template"              "$TARGET/design/mobile.md"           "design/mobile.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/web.md.template"                 "$TARGET/design/web.md"              "design/web.md"
+
+# --- 3. foundation.json (stamped) ------------------------------------
+
+FOUNDATION_FILE="$TARGET/.claude/foundation.json"
+TODAY="$(date +%Y-%m-%d)"
+
+if [ -f "$FOUNDATION_FILE" ]; then
+  echo "    skip:    .claude/foundation.json  (exists — use /sync to update)"
+else
+  cat > "$FOUNDATION_FILE" <<EOF
+{
+  "kit": {
+    "repo": "$KIT_REPO_URL",
+    "branch": "$KIT_BRANCH"
+  },
+  "pinned_sha": "$KIT_SHA",
+  "last_synced": "$TODAY",
+  "overrides": []
+}
+EOF
+  echo "    create:  .claude/foundation.json  (pinned to ${KIT_SHA:0:12})"
+fi
+
+# --- 4. Scaffold dirs ------------------------------------------------
+
+echo
+echo "→ Scaffolding directories"
+
+scaffold_dir() {
+  local dir="$1"
+  local label="$2"
+  mkdir -p "$TARGET/$dir"
+  if [ -z "$(ls -A "$TARGET/$dir" 2>/dev/null)" ]; then
+    touch "$TARGET/$dir/.gitkeep"
+    echo "    create:  $label/.gitkeep"
+  else
+    echo "    skip:    $label  (not empty)"
+  fi
+}
+
+scaffold_dir "migrations/active"   "migrations/active"
+scaffold_dir "migrations/closed"   "migrations/closed"
+scaffold_dir "risks/open"          "risks/open"
+scaffold_dir "risks/mitigated"     "risks/mitigated"
+scaffold_dir "reviews/weekly"      "reviews/weekly"
+scaffold_dir "reviews/monthly"     "reviews/monthly"
+scaffold_dir "reviews/quarterly"   "reviews/quarterly"
+scaffold_dir "state/sub-repos"     "state/sub-repos"
+scaffold_dir "pr-reviews"          "pr-reviews"
+
+# --- 5. .gitignore ---------------------------------------------------
+
+if [ ! -f "$TARGET/.gitignore" ]; then
+  cat > "$TARGET/.gitignore" <<'EOF'
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Claude Code local
+.claude/settings.local.json
+.claude/worktrees/
+
+# Generated state (regenerated on demand)
+state/sync-status.md
+state/audit-progress.md
+state/brief-cache.md
+EOF
+  echo "    create:  .gitignore"
+fi
+
+# --- 6. Next steps ---------------------------------------------------
+
+cat <<EOF
+
+✅ claude-orchestrator installed.
+
+Next steps:
+  1. Open CLAUDE.md and replace {{COMPANY_NAME}} / {{COMPANY_PURPOSE}}.
+  2. Open README.md and replace {{COMPANY_NAME}}; tighten copy for this instance.
+  3. Read .claude/orchestrator-rules.md — that's the operating
+     discipline. The CTO's analog of claude-kit's task-rules.md.
+  4. Fill in the anchors first — tech-vision.md and tech-principles.md.
+     These shape every ADR you'll file.
+  5. Run /audit inside Claude Code to populate stack, contracts,
+     conventions, platform-constraints — that's the v1 entry point.
+  6. Use /register to add sub-repos to state/manifest.md as you
+     spin them up.
+  7. Fill in ownership.md, vendors.md, security-posture.md,
+     compliance.md as data exists. Don't fill them with fiction.
+  8. cost-tracking.md and slos.md stay as scaffolding until you
+     have real numbers. Adding fake numbers is worse than empty.
+
+Operating cadence (per .claude/orchestrator-rules.md):
+  - Weekly: /review weekly — Friday EOD or Monday AM
+  - Monthly: /review monthly — first week of next month
+  - Quarterly: /review quarterly — first week of next quarter
+  - On demand: /decision, /feature, /migration, /risk, /incident
+  - Daily orientation: /brief
+
+When the kit gets new versions later:
+  - Run /sync inside Claude Code to pull updates.
+  - Bootstrap files (CLAUDE.md, README, roadmap, AUDIT, vision,
+    principles, vendors, cost, security, compliance, ownership,
+    slos, stack/, contracts/, conventions/, state/manifest.md) are
+    never touched by /sync. Skills, orchestrator-rules.md, and the
+    templates/READMEs under decisions/, features/, migrations/,
+    risks/, incidents/, reviews/ are.
+
+Source: $KIT_REPO_URL
+EOF

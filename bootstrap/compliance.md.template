@@ -1,0 +1,48 @@
+# Compliance
+
+Regulatory frameworks that apply to this company's stack.
+
+> If "n/a — none applicable yet", this file is just scaffolding.
+> Keep it for when something changes (new market, new product
+> category, new contract that requires compliance).
+
+## Applicable frameworks
+
+| Framework | Status | Last audit | Next deadline | Owner |
+|---|---|---|---|---|
+| {{e.g. SOC2 Type II}} | {{in-progress / compliant / lapsed}} | {{YYYY-MM-DD}} | {{YYYY-MM-DD}} | {{...}} |
+| {{e.g. GDPR}} | {{...}} | | | |
+| {{e.g. HIPAA}} | {{...}} | | | |
+| {{e.g. PCI DSS Level N}} | {{...}} | | | |
+
+## Outstanding requirements
+
+From audit findings or self-assessment. Each open item should
+either resolve to a sub-repo task, an ADR, or a risk in
+`risks/open/`.
+
+| Requirement | Framework | Surfaced | Action artifact | Status |
+|---|---|---|---|---|
+| _(populate)_ | | | | |
+
+## Documentation links
+
+External docs / runbooks referenced by audit:
+
+- {{e.g. docs/compliance/data-handling-policy.md}}
+- {{e.g. https://internal.wiki/security/access-review-process}}
+
+## Recurring checks
+
+| Check | Cadence | Last done | Owner |
+|---|---|---|---|
+| {{e.g. Access review}} | quarterly | {{YYYY-MM-DD}} | {{...}} |
+| {{e.g. Backup restore drill}} | quarterly | | |
+| {{e.g. DPA review for new vendors}} | per onboarding | n/a | {{...}} |
+
+---
+
+**Quarterly review:** walk this file. Any deadlines in next 90
+days? Any outstanding requirements aging? Any new frameworks the
+business now needs to comply with (new market, new customer
+contract)?
