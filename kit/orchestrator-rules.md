@@ -316,6 +316,15 @@ Per-sub-repo state lives at `state/sub-repos/<name>.md`. The
 manifest at `state/manifest.md` is the index; the per-sub-repo
 file is the depth. See [`state/README.md`](state/README.md).
 
+### Registration
+
+How sub-repos physically get associated with the orchestrator —
+sibling layout, three input cases, anti-patterns — is documented
+at [`sub-project-registration.md`](sub-project-registration.md).
+Headline: orchestrator records absolute paths; never moves
+existing repos; recommended layout is orchestrator + sub-repos as
+siblings under a parent dir.
+
 ### What the orchestrator does NOT do
 
 - **Modify running files (code) without explicit user override.**

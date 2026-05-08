@@ -85,6 +85,12 @@ via `/sync`):
   — pinned reference for claude-kit's file shape and lifecycle, so
   the orchestrator can read kit-enabled sub-projects with
   confidence.
+- [`.claude/sub-project-registration.md`](.claude/sub-project-registration.md)
+  — registration workflow: sibling layout, the three input cases
+  (existing path / GitHub URL / unknown), clone target convention,
+  anti-patterns.
+- [`.claude/design.md`](.claude/design.md) — design standards
+  discipline (tokens are source of truth, validation pattern).
 
 This file (CLAUDE.md) holds the **company-specific** behaviors:
 identity, hard rules, conventions, instance-specific decisions.

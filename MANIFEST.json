@@ -35,6 +35,12 @@
         "note": "Design standards discipline doc — what's tracked, source-of-truth rules, validation pattern. Generic across instances."
       },
       {
+        "from": "kit/sub-project-registration.md",
+        "to": ".claude/sub-project-registration.md",
+        "policy": "file-replace",
+        "note": "Registration workflow doc — sibling layout, three input cases, clone target convention, anti-patterns. Generic across instances."
+      },
+      {
         "from": "kit/state/sub-repos/_template.md",
         "to": "state/sub-repos/_template.md",
         "policy": "file-replace",

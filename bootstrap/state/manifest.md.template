@@ -11,6 +11,28 @@ Update via `/register` or by editing this file directly.
 > [`state/sub-repos/<name>.md`](../../state/sub-repos/) — that's
 > where current branch, HEAD, advertisement, and references to all
 > orchestrator artifacts touching the repo live.
+>
+> **Registration discipline.** See
+> [`.claude/sub-project-registration.md`](../../.claude/sub-project-registration.md)
+> for the input cases (existing path / GitHub URL / unknown), the
+> clone target convention, and the anti-patterns. The orchestrator
+> doesn't move existing repos — it adapts to where they live.
+
+## Recommended layout
+
+The orchestrator lives as a **sibling** of the registered sub-repos:
+
+```
+~/ChazzCoin/                        (or wherever your code lives)
+├── {{COMPANY_NAME}}-orchestrator/  this orchestrator instance
+├── {{COMPANY_NAME}}-api/           registered sub-repo
+├── {{COMPANY_NAME}}-ios/           registered sub-repo
+├── {{COMPANY_NAME}}-web/           registered sub-repo
+└── {{COMPANY_NAME}}-devops/        registered sub-repo
+```
+
+Recommended, not required. The manifest stores absolute paths, so
+unconventional layouts work — but defaults assume siblings.
 
 ## Format
 
@@ -42,7 +64,7 @@ _(populate via /register or by hand)_
 <!--
 ## api
 - **Role:** api
-- **Local path:** /Users/<you>/code/<company>-api
+- **Local path:** /Users/<you>/ChazzCoin/<company>-api      (sibling of the orchestrator)
 - **Git remote:** git@github.com:<org>/<company>-api.git
 - **Default branch:** main
 - **Kit-enabled:** true

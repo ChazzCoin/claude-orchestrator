@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.7.0 — 2026-05-08
+
+Codify the sub-project registration workflow. Answers the
+fundamental question: how does a sub-repo physically get
+associated with the orchestrator?
+
+**Decision:** keep repos where they live. The orchestrator records
+absolute paths in the manifest; it doesn't move, clone, or symlink
+existing repos. Recommended layout is orchestrator + sub-repos as
+siblings under a parent dir (e.g. `~/ChazzCoin/`).
+
+**New discipline doc (kit-managed):**
+
+- `kit/sub-project-registration.md` — full workflow:
+  - The four options considered (keep / clone-into-orch /
+    symlink / remote-only) and why option 1 wins for v1
+  - Recommended sibling layout with example tree
+  - Three input cases for `/register`:
+    1. Path exists, repo is local → validate + register
+    2. GitHub URL but not yet cloned → suggest sibling
+       destination, clone with explicit approval, then register
+    3. Neither → ask the user; don't guess
+  - What `/register` never does (move existing, delete checkout,
+    auto-clone without approval, register without remote, register
+    non-git directories)
+  - Edge cases (multiple checkouts, worktrees, shared between two
+    orchestrators, network drives, fresh repos)
+  - Future-proofing — `git_remote` is the portable anchor that
+    survives a future migration to remote-only (option 4)
+  - Anti-patterns to avoid
+
+**Updates:**
+
+- `bootstrap/state/manifest.md.template` — adds a "Recommended
+  layout" section with sibling-layout example tree; example entry
+  shows sibling path.
+- `kit/sub-projects.md` — new "Registration" section with headline
+  rules referencing the new discipline doc.
+- `kit/orchestrator-rules.md` — Sub-projects section gains a brief
+  "Registration" subsection referencing the discipline doc.
+- `bootstrap/CLAUDE.md.template` — operating-discipline file list
+  gains the new doc.
+- `MANIFEST.json` + `bin/init` — kit/sub-project-registration.md →
+  .claude/sub-project-registration.md (file-replace, synced).
+
 ## 0.6.0 — 2026-05-08
 
 Wire design standards as a tracked macro-state concern. Visual

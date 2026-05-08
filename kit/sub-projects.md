@@ -464,6 +464,27 @@ sub-repo, minimal metadata). Per-sub-repo state files are the
 advertisement). Manual notes in the per-sub-repo file's **Notes**
 section are preserved.
 
+## Registration
+
+How sub-repos physically get associated with the orchestrator —
+where they live on disk, when to clone, when to leave alone — is
+documented in detail at
+[`sub-project-registration.md`](sub-project-registration.md).
+
+Headline rules:
+
+- **Keep repos where they live.** Manifest records absolute paths;
+  the orchestrator doesn't move, clone, or symlink existing repos.
+- **Recommended layout: sibling.** Orchestrator and registered
+  sub-repos as siblings under a parent dir (e.g. `~/ChazzCoin/`).
+- **Three input cases for `/register`:** existing local path
+  (validate + register), GitHub URL not yet local (clone with
+  approval, then register), neither (ask the user — don't guess).
+- **Default clone destination:** `<orchestrator-parent>/<repo-name>`
+  (sibling slot). User can override.
+- **Never move an existing repo to "tidy up."** Other tooling
+  (IDE, scripts) likely depends on current paths.
+
 ---
 
 ## When NOT to use the orchestrator's sub-repo machinery

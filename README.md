@@ -122,6 +122,7 @@ claude-orchestrator/
 ├── kit/                              # synced into instances on /sync
 │   ├── orchestrator-rules.md         # CTO operating discipline (analog of task-rules.md)
 │   ├── sub-projects.md               # how to work with kit-enabled + non-kit sub-projects
+│   ├── sub-project-registration.md   # registration workflow (sibling layout, clone convention)
 │   ├── claude-kit-reference.md       # pinned reference for claude-kit's shape
 │   ├── design.md                     # design standards discipline (tokens, validation)
 │   ├── skills/                       # /audit, /migration, /risk, /incident, /review, ...

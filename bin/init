@@ -71,6 +71,12 @@ if [ -f "$KIT_DIR/kit/design.md" ]; then
   echo "    rules:    .claude/design.md"
 fi
 
+# kit/sub-project-registration.md → .claude/sub-project-registration.md
+if [ -f "$KIT_DIR/kit/sub-project-registration.md" ]; then
+  cp "$KIT_DIR/kit/sub-project-registration.md" "$TARGET/.claude/sub-project-registration.md"
+  echo "    rules:    .claude/sub-project-registration.md"
+fi
+
 # kit/state/sub-repos/_template.md → state/sub-repos/_template.md
 mkdir -p "$TARGET/state/sub-repos"
 if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
