@@ -87,6 +87,7 @@ appends one line. The point is one-glance history.
 - 🎯 Quarterly review completed
 - 🔧 Macro state refreshed (e.g. `/audit` Phase N landed)
 - 🤝 Sub-repo registered / deregistered
+- 🚨 Code touch under user override (orchestrator hand-edited a running file)
 
 ### What NOT to log
 
@@ -220,17 +221,28 @@ richer, non-kit is sufficient for migration coordination.
 The orchestrator NEVER edits files inside a sub-repo without going
 through git (branch + PR + user-approved merge).
 
-### Write — four sanctioned paths
+### Read-then-act
+
+When the user asks for something involving a sub-project:
+
+1. Read the sub-project's docs first (its CLAUDE.md, runbooks,
+   conventions).
+2. Classify: read query / state-changing command / non-running
+   file update / **code change**.
+3. Route per the matching path below.
+
+### Write — four sanctioned paths *(running files are off-limits without override)*
 
 1. **Migration notices** — `<sub>/.claude/active-<concern>.md`.
    Owned by `/migration` (and future per-concern skills). Templates
    in [`templates/sub-repo-notices/`](templates/sub-repo-notices/).
-2. **Documentation / config / spec changes** — orchestrator drafts
-   the change directly, opens a PR
-   (`chore/orch-<YYYY-MM-DD-slug>`), user approves the merge. **No
-   task spec.** Use for: schema doc updates, phase additions,
-   ROADMAP edits, AUDIT entries, CLAUDE.md corrections,
-   ADR drafted into `<sub>/docs/decisions/`.
+2. **Non-running file updates** — orchestrator drafts the change
+   directly, opens a PR (`chore/orch-<YYYY-MM-DD-slug>`), user
+   approves the merge. Use for: doc updates (`README`, runbooks,
+   ADRs in `<sub>/docs/`), phase additions, ROADMAP edits, AUDIT
+   entries, CLAUDE.md corrections, conventions docs. **Never for
+   running files** (source code, build configs, CI, infra-as-code,
+   runtime configs) — see Code boundary below.
 3. **Coding-task specs** — orchestrator drafts a task spec into
    `<sub>/tasks/backlog/TASK-NNN-slug.md` (kit-enabled only),
    opens a PR with the spec. The sub-kit does the actual coding.
@@ -239,8 +251,46 @@ through git (branch + PR + user-approved merge).
    typically once at registration).
 
 **The split is load-bearing:** tasks are for **coding work**.
-Documentation / config / spec changes are not "tasks" in the
-sub-kit sense — those the orchestrator does directly via PR.
+Non-running file edits the orchestrator does itself via PR.
+Running files are off-limits.
+
+### Code boundary (non-negotiable)
+
+The orchestrator does **NOT** modify running files (source code,
+build configs, CI/CD, infra-as-code, runtime configs, anything
+loaded by a service at runtime) without **explicit user override**.
+
+When the user asks for a code change:
+
+1. **Pause.** Identify the file as running.
+2. **Advise against the orchestrator doing it.** Reasoning: the
+   orchestrator skips the sub-kit's verification gate / test
+   pairing / per-repo context. Hand-edits to code are risky.
+3. **Suggest the right path** — task spec (kit-enabled) or the
+   user does it manually.
+4. **Wait for explicit override.** Anything ambiguous → re-ask.
+5. **If overridden** — open the PR with `⚠ Code touch under user
+   override` in the body; AUDIT entry flags the override
+   explicitly; recommend the user run the verification command
+   before merging.
+
+Full discipline at [`sub-projects.md`](sub-projects.md) "Code
+boundary".
+
+### Run — commands from sub-project docs
+
+The orchestrator can run commands sourced from a sub-project's
+documentation (its runbooks, CLAUDE.md, ADRs):
+
+- **Read queries** (no state change) — run directly.
+- **State-changing commands** — run with **explicit user approval**
+  per CLAUDE.md "Executing actions with care". This applies to
+  deploys, scales, restarts, secret rotations, etc.
+
+The orchestrator USES the sub-project's playbooks rather than
+inventing new ones. If a runbook is missing or wrong, fix the
+runbook (path 2: non-running file update) before running anything
+that depends on it.
 
 ### Git discipline (every write)
 
@@ -264,11 +314,14 @@ file is the depth. See [`state/README.md`](state/README.md).
 
 ### What the orchestrator does NOT do
 
+- **Modify running files (code) without explicit user override.**
+  See "Code boundary" above. This is the hardest rule.
 - Dispatch tasks to sub-kits. The user dispatches.
 - Write to a sub-repo without a PR (except `active-*.md` notices,
   which are the structured one-way signal).
 - Auto-merge any PR.
-- Run sub-kit coding work itself.
+- Run state-changing commands without user approval.
+- Invent commands when the sub-project's docs already have them.
 
 ---
 

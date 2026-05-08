@@ -84,6 +84,88 @@ which flavor.
 
 ---
 
+## Read-then-act protocol
+
+When the user asks the orchestrator to do something involving a
+sub-project, the routing is:
+
+1. **Read the sub-project's docs first.** `<sub>/docs/` (runbooks,
+   ADRs, postmortems), `<sub>/CLAUDE.md`, kit's `task-rules.md` if
+   kit-enabled, conventions, READMEs — whatever's relevant. The
+   sub-project is the source of truth for its own how-to. The
+   orchestrator's job is to USE that knowledge, not duplicate it.
+2. **Classify the action:**
+
+   | Action type | What it is | What the orchestrator does |
+   |---|---|---|
+   | **Read query** | Command that queries external state without changing it (`gh pr list`, `az resource list`, `kubectl get`, `git log`, etc.) | Run it directly |
+   | **State change via documented command** | Command from a sub-project runbook that changes external state (deploy, scale, rotate, restart) | Run **with explicit user approval** per CLAUDE.md "Executing actions with care" |
+   | **Non-running file update** | Edit a doc (README, runbook, ADR, conventions, ROADMAP, PHASES, AUDIT, CLAUDE.md, etc.) | Draft in `chore/orch-*` PR; user merges |
+   | **Code change** *(running files — see boundary below)* | Modify a file that gets built / interpreted / deployed / executed | **Orchestrator does NOT do this** without explicit user override (see "Code boundary"). File a task spec via path 3, or advise the user to do it manually. |
+
+3. **Act.** Take the matching path.
+
+The principle: the orchestrator is a **competent operator with read
+access to everything and write access only to docs**. It runs the
+sub-project's own playbooks rather than inventing new ones.
+
+---
+
+## Running files vs non-running files
+
+The boundary that determines whether the orchestrator can write a
+file directly.
+
+### Running files *(orchestrator does NOT write — see Code boundary)*
+
+Anything that gets built, interpreted, deployed, or executed in a
+running environment:
+
+- Source code (any language)
+- Build / packaging configs (`package.json`, `Cargo.toml`,
+  `build.gradle`, `Package.swift`, `pyproject.toml`, etc.)
+- CI / CD pipeline files (`.github/workflows/*.yml`,
+  `Jenkinsfile`, etc.)
+- Infrastructure-as-code (`*.tf`, `*.bicep`, `Pulumi.*.yaml`,
+  `cloudformation.*`, etc.)
+- Runtime configs loaded by services (`.env*`, `config/*.{json,yaml,toml}`,
+  Kubernetes manifests, etc.)
+- Schema migration scripts (the executable kind)
+- Generated code, vendored dependencies
+
+**The orchestrator READS these freely** — to understand behavior,
+verify what's actually deployed, inform decisions. It never writes
+them without explicit override.
+
+### Non-running files *(orchestrator can read AND write via PR)*
+
+Files that don't get loaded or executed at runtime:
+
+- Markdown docs (`README.md`, `docs/runbooks/`, `docs/postmortems/`,
+  `docs/decisions/`, `<sub>/CLAUDE.md`, `task-rules.md`,
+  `<sub>/tasks/PHASES.md`, `<sub>/tasks/ROADMAP.md`,
+  `<sub>/tasks/AUDIT.md`)
+- Orchestrator-pushed notices (`<sub>/.claude/active-*.md`)
+- Conventions docs, design docs, requirement specs
+- Static documentation that lives next to code but isn't loaded by
+  it
+
+**Edge cases:**
+
+- **Comments / inline docs inside running files** — these are part
+  of the running file. Off-limits without override. Doc-only edits
+  to a source file go through the task pipeline.
+- **`.gitignore`, `.editorconfig`, etc.** — config files for tools
+  that don't run in production. The orchestrator can update these
+  via PR.
+- **Test fixtures / mock data** — running files (loaded by tests).
+  Off-limits without override.
+
+**The test:** *"Does anything that runs in production load this
+file?"* Yes → code. No → doc.
+
+---
+
 ## Write protocol
 
 The orchestrator writes into sub-projects in four cases. The
@@ -96,12 +178,14 @@ The structured cross-repo coordination signal. Owned by
 [`kit/templates/sub-repo-notices/migrations.md.template`](templates/sub-repo-notices/migrations.md.template).
 Works on kit-enabled and non-kit alike.
 
-### 2. Documentation / config / spec changes — orchestrator touches files directly via PR
+### 2. Non-running file updates — orchestrator touches files directly via PR
 
-When the user decides on a non-coding change — schema documentation,
-phase addition, ROADMAP edit, AUDIT entry, project CLAUDE.md
-correction, ADR drafted into `<sub>/docs/decisions/`, etc. — the
-orchestrator:
+For non-running files only (see "Running files vs non-running files"
+above). Examples: schema documentation, phase addition, ROADMAP
+edit, AUDIT entry, project `CLAUDE.md` correction, ADR drafted
+into `<sub>/docs/decisions/`, runbook update, conventions doc fix.
+
+The orchestrator:
 
 1. Pulls latest main in the sub-repo
 2. Branches: `chore/orch-<YYYY-MM-DD-short-slug>`
@@ -111,14 +195,15 @@ orchestrator:
    feature) that motivated the change
 5. **Lets the user approve the merge**
 
-**No task spec is created for documentation updates.** Doc edits
+**No task spec is created for non-running file updates.** Doc edits
 are not "work" in the sub-kit sense — they're reflection of
 decisions already made at the macro level.
 
 This rule is the load-bearing distinction:
 
-> **Tasks are for coding work. Documentation / config / spec
-> changes the orchestrator does itself.**
+> **Tasks are for coding work. Non-running file edits the
+> orchestrator does itself via PR. Running files are off-limits
+> without explicit user override.**
 
 ### 3. Coding changes — task spec drafted into `<sub>/tasks/backlog/`
 
@@ -152,6 +237,104 @@ If the user accepts the install offer, the orchestrator runs
 sanctioned write that creates the kit shape in the target.
 Standard PR flow afterward (the init creates files; orchestrator
 opens a PR with all of them so the user can review).
+
+---
+
+## Code boundary (non-negotiable)
+
+The orchestrator does **NOT** modify running files (per the list
+above) without **explicit user override**. This rule is hard.
+
+### Why the rule exists
+
+The orchestrator doesn't have the verification gate, the
+test-pairing discipline, or the per-repo context that the sub-kit
+has. Code changes made by the orchestrator skip the very controls
+that make sub-kit-shipped code reliable. Hand-edits to running
+files are legitimately risky — the orchestrator is not where code
+work happens.
+
+Doc edits don't have that risk: there's no runtime that fails
+silently on a misworded README.
+
+### What to do when the user asks for a code change
+
+When the user asks the orchestrator to modify a running file, the
+orchestrator must:
+
+1. **Pause** before acting.
+2. **Identify it as a code touch** clearly:
+   > "The change you're asking for involves `<file>`, which is a
+   > running file (it gets [built / loaded / executed in production]).
+   > By default the orchestrator doesn't touch code."
+3. **Advise against it.** Lay out the reasoning:
+   - Code changes go through the sub-kit's task pipeline
+     (verification gate, focused test, closing report) — that
+     pipeline doesn't apply when the orchestrator hand-edits.
+   - The orchestrator lacks per-repo context (build config,
+     test fixtures, runtime quirks) that the sub-kit has.
+   - Even small code changes can break things in non-obvious
+     ways without the gate.
+4. **Suggest the right path:**
+   - **Kit-enabled sub-project:** file a task spec via path 3
+     (orchestrator drafts the spec into `<sub>/tasks/backlog/`,
+     sub-kit ships it).
+   - **Non-kit sub-project:** offer to install claude-kit; or the
+     user does the change manually.
+5. **Wait for explicit override.** If the user says (paraphrase
+   acceptable):
+   - "Yes, override — do it anyway"
+   - "Yes, I'm overriding the rule"
+   - "Override the code boundary"
+   - "Touch the code"
+   …then the orchestrator complies. Anything ambiguous → ask
+   again, don't proceed.
+
+### When the user overrides
+
+If the user explicitly overrides:
+
+- **Open the PR through the standard `chore/orch-*` flow.**
+- **PR body must contain an explicit override marker:**
+  > **⚠ Code touch under user override.** Standard sub-kit
+  > verification gate not applied. The user requested this
+  > orchestrator-direct edit on `<YYYY-MM-DD>`.
+  > Recommended: run `<sub-repo's verification command per
+  > CLAUDE.md>` before merging.
+- **AUDIT entry has the explicit override flag (use 🚨):**
+  > `🚨 Code touch under override — <repo> <file> <one-line>.
+  > User overrode code boundary. → PR #<N>`
+- **User still approves the merge.** Override doesn't bypass the
+  PR flow; it bypasses only the "we don't touch code" default.
+- **Sub-kit's per-repo `/review` should run on the PR.** The
+  override skips the orchestrator's default rule, not the sub-
+  kit's normal review pipeline.
+
+### What "code change" means in practice
+
+When unsure, ask: *"Does anything that runs in production load
+this file?"* If yes, treat as code. Examples:
+
+- Editing `index.js`, `main.swift`, `models.py` → code
+- Editing `README.md` → not code
+- Editing `package.json` (changes what the runtime depends on) → code
+- Editing `docs/runbooks/deploy.md` → not code
+- Editing `.github/workflows/ci.yml` (CI runs this) → code
+- Editing `tasks/ROADMAP.md` (the orchestrator nor sub-kit runs
+  this) → not code
+- Editing a comment inside `index.js` → code (the file is
+  running; the comment is in it)
+- Adding a new doc file at `docs/architecture.md` → not code
+
+### What the orchestrator does NOT have to advise against
+
+- Running commands sourced from sub-project docs (read queries:
+  always; state changes: with user approval per CLAUDE.md).
+- Reading running files for context.
+- Updating non-running files.
+- Filing task specs (path 3) into kit-enabled sub-projects.
+
+These don't require the override — they're the default protocol.
 
 ---
 

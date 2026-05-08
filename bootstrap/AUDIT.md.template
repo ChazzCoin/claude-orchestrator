@@ -26,6 +26,7 @@ file changes; this is the human-readable layer above it.
 - 🎯 Review completed (weekly / monthly / quarterly)
 - 🔧 Macro state refreshed (`/audit` phase, etc.)
 - 🤝 Sub-repo registered / deregistered
+- 🚨 Code touch under user override (orchestrator hand-edited a running file)
 
 ---
 

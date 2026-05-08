@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.5.0 — 2026-05-08
+
+Two hard rules. Sharpens what was implicit before.
+
+**Rule 1 — Read-then-act on sub-projects.** When the user asks for
+something involving a sub-project, the orchestrator reads the
+sub-project's own docs first (its CLAUDE.md, runbooks, conventions,
+ADRs) and then takes the matching path. Specifically:
+
+- **Read queries** (commands that don't change state) — orchestrator
+  runs them directly using sub-project docs as reference.
+- **State-changing commands** — orchestrator runs them with explicit
+  user approval per CLAUDE.md "Executing actions with care".
+- **Non-running file edits** — orchestrator drafts in `chore/orch-*`
+  PR.
+- **Code changes** — file a task (kit-enabled), or user does it
+  manually.
+
+The orchestrator USES the sub-project's playbooks rather than
+inventing new ones. If a runbook is missing or wrong, fix the
+runbook first.
+
+**Rule 2 — Code boundary (non-negotiable).** The orchestrator does
+**NOT** modify running files without explicit user override.
+"Running files" defined precisely: source code, build / packaging
+configs, CI/CD pipelines, infrastructure-as-code, runtime configs,
+schema migrations, generated code. The test: "does anything that
+runs in production load this file?"
+
+When asked for a code change:
+1. Pause. Identify it as a code touch.
+2. Advise against the orchestrator doing it — reasoning: skips
+   sub-kit verification gate, lacks per-repo context, hand-edits
+   to code are risky.
+3. Suggest the right path: task spec (kit-enabled) or user manual.
+4. Wait for explicit override.
+5. If overridden — open `chore/orch-*` PR with `⚠ Code touch under
+   user override` marker; AUDIT entry with 🚨; recommend running
+   the verification command before merge.
+
+**Wiring:**
+
+- `kit/sub-projects.md` — three new sections: "Read-then-act
+  protocol", "Running files vs non-running files" (with the test +
+  edge cases), "Code boundary (non-negotiable)" (with the
+  five-step override discipline). Path 2 of the Write protocol
+  renamed from "Documentation / config / spec changes" to
+  "Non-running file updates" to reflect the sharper boundary.
+- `kit/orchestrator-rules.md` — Sub-projects section gains
+  "Read-then-act", "Code boundary (non-negotiable)", and "Run —
+  commands from sub-project docs" subsections; Path 2 in the
+  four sanctioned paths sharpened; "What the orchestrator does
+  NOT do" list led by the code-touch rule.
+- `bootstrap/CLAUDE.md.template` — Hard rules section gets two new
+  rules: Read-then-act on sub-projects, and Don't touch code.
+- New AUDIT emoji: 🚨 for code touches under user override.
+
 ## 0.4.0 — 2026-05-08
 
 Add the macro-grade PR review structure. The orchestrator's review
