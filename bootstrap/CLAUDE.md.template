@@ -1,4 +1,18 @@
-# CLAUDE.md — Orchestrator
+# CLAUDE.md — {{COMPANY_NAME}} orchestrator
+
+> This file is **instance-specific**. Replace the `{{PLACEHOLDERS}}`
+> below for this company. The kit's `/sync` will never overwrite this
+> file — it's yours to evolve.
+
+## What this is
+
+This is **{{COMPANY_NAME}}'s** orchestrator — macro architectural truth
+for {{COMPANY_PURPOSE}}.
+
+Sub-repos in the stack are registered in
+[state/manifest.md](state/manifest.md).
+
+## Working contract
 
 This is the working contract for an orchestrator instance. It applies to
 every session in this repo. Project-specific extensions go in additional
