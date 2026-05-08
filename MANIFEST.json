@@ -39,6 +39,12 @@
         "to": "state/README.md",
         "policy": "file-replace",
         "note": "State directory format documentation."
+      },
+      {
+        "from": "kit/templates/",
+        "to": ".claude/templates/",
+        "policy": "directory-mirror",
+        "note": "Template files used by skills (e.g. /migration reads sub-repo-notices/migrations.md.template). Lives under .claude/ because it's kit machinery, not user-authored content."
       }
     ]
   },

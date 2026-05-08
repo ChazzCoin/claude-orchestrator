@@ -80,6 +80,17 @@ if [ -f "$KIT_DIR/kit/state/README.md" ]; then
   echo "    template: state/README.md"
 fi
 
+# kit/templates/ → .claude/templates/  (used by skills like /migration)
+if [ -d "$KIT_DIR/kit/templates" ]; then
+  mkdir -p "$TARGET/.claude/templates"
+  for sub in "$KIT_DIR/kit/templates"/*/; do
+    [ -d "$sub" ] || continue
+    name="$(basename "$sub")"
+    cp -R "$sub" "$TARGET/.claude/templates/$name"
+    echo "    template: .claude/templates/$name/"
+  done
+fi
+
 # --- 2. Bootstrap files (skip if exists) -----------------------------
 
 echo

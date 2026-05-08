@@ -25,6 +25,40 @@ If ambiguous, ask which.
 
 ---
 
+## Notice file format
+
+This skill is the only orchestrator → sub-repo write path in v1
+(see `kit/templates/sub-repo-notices/README.md`). When writing into
+a sub-repo's `.claude/active-migrations.md`:
+
+- **Use the template at
+  `.claude/templates/sub-repo-notices/migrations.md.template`** in
+  this orchestrator instance. It defines the header (auto-managed
+  warning + source-orchestrator pointer + timestamp), the body
+  shape, and the comment hint inside `## Open` describing each
+  entry's structure.
+- **Substitute placeholders** when rendering:
+  `{{ORCHESTRATOR_PATH}}` — absolute path to this orchestrator
+  instance; `{{REPO_NAME}}` — the sub-repo name from
+  `state/manifest.md`; `{{TIMESTAMP}}` — ISO date+time at write
+  time; `{{SKILL}}` — `/migration`; `{{MIGRATION_ENTRIES}}` — the
+  rendered entry list.
+- **Regenerate the body wholesale** every time. Don't read the
+  existing file and merge — that's how stale entries accumulate.
+  Read `migrations/active/`, filter for migrations whose `affects`
+  list contains this repo, render entries in directory order
+  (newest first by ID date prefix).
+- **Delete the file when the entry list is empty.** No empty
+  notice files left behind.
+- **Don't invent new sections.** If the format needs to change,
+  update the template in the kit, then `/sync` instances.
+
+The same pattern will apply to future concerns
+(`active-adrs.md`, etc.) — see
+`kit/templates/sub-repo-notices/README.md` for adding new ones.
+
+---
+
 ## Mode: Open
 
 ### Behavior contract
@@ -67,11 +101,15 @@ If ambiguous, ask which.
    the diffs to the user.
 
 5. **Draft sub-repo notices.** For each affected sub-repo:
-   - Read `state/manifest.md` to get the local path
-   - Draft (don't write yet) `.claude/active-migrations.md` content:
-     a list of open migration IDs touching this repo with one-line
-     summary and link back to the migration file in the orchestrator
-   - If the file exists, merge with existing entries
+   - Read `state/manifest.md` to get the local path.
+   - Render `.claude/active-migrations.md` content **wholesale**
+     from `migrations/active/`, using the template at
+     `.claude/templates/sub-repo-notices/migrations.md.template` —
+     see "Notice file format" above. The new migration is now in
+     `migrations/active/`, so it lands in the rendered output
+     naturally; older still-open migrations affecting this repo
+     also stay in.
+   - Don't write yet — show the rendered content as part of step 6.
 
 6. **Show everything.** All drafted files (migration, contract updates,
    per-repo notices) shown together. Get user confirmation.
@@ -173,8 +211,11 @@ done; now in validation phase. <N> items remain."
    show what's missing and stop.
 3. Update frontmatter (`status: closed`, add `closed: YYYY-MM-DD`).
 4. Move file to `migrations/closed/<id>.md`.
-5. For each affected repo: read `.claude/active-migrations.md`, remove
-   this migration's entry, delete the file if empty.
+5. For each affected repo: regenerate `.claude/active-migrations.md`
+   from `migrations/active/` (this migration is now in `closed/`,
+   so it drops off automatically). Use the template per "Notice
+   file format" above. If the rendered entry list is empty, delete
+   the file instead of writing an empty one.
 6. Append a one-liner to `roadmap.md` "Recently shipped" section.
 7. Show the user the closure summary.
 8. Don't auto-commit.

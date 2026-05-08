@@ -36,6 +36,24 @@ one reasoning surface across software, infra, and product.
 
 ---
 
+## Cross-repo write path
+
+Sub-kits **read** the orchestrator on demand. The orchestrator
+**writes** into sub-repos in exactly one place:
+`<sub-repo>/.claude/active-<concern>.md` — files the orchestrator
+drops so a sub-kit notices coordination signals on session start.
+
+Today only `active-migrations.md` exists; the structure is in place
+to add more (active ADRs, pending contract changes, etc.) without
+re-architecting. The pattern is documented in
+[`kit/templates/sub-repo-notices/README.md`](kit/templates/sub-repo-notices/README.md).
+
+For the read-side to actually work, the sub-repo's claude-kit needs
+the matching session-start rule. See `claude-kit`'s `task-rules.md`
+"Active orchestrator notices" section.
+
+---
+
 ## What's in the kit
 
 ```
@@ -45,7 +63,9 @@ claude-orchestrator/
 │   ├── decisions/                # ADR template + format docs
 │   ├── features/                 # feature plan template + format docs
 │   ├── migrations/               # migration template + format docs
-│   └── state/README.md
+│   ├── state/README.md
+│   └── templates/                # files skills render into sub-repos
+│       └── sub-repo-notices/     #   migrations.md.template, ...
 ├── bootstrap/                    # one-time, becomes instance property
 │   ├── CLAUDE.md.template        # behavior contract w/ {{COMPANY_NAME}}
 │   ├── README.md.template
