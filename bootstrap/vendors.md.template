@@ -1,0 +1,57 @@
+# Vendors
+
+Third-party services this stack depends on. Tracked at the
+orchestrator level so renewals, risks, and switch costs are
+visible without spelunking through each sub-repo's `package.json`.
+
+> Updated when: a vendor is added, a contract changes, a renewal
+> approaches, or at the quarterly review.
+
+## Format
+
+```markdown
+## {{vendor name}}
+
+- **Used for:** {{what role it plays in the stack}}
+- **Sub-repos depending on it:** {{api, ios, web, ...}}
+- **Plan / tier:** {{...}}
+- **Renewal:** {{YYYY-MM-DD or "month-to-month"}}
+- **Contractual SLA:** {{e.g. 99.9% uptime, 4h support response}}
+- **Switch cost:** {{low / medium / high — and why}}
+- **Risk if outage:** {{what breaks, for whom, for how long}}
+- **Account owner:** {{...}}
+- **Notes:** {{...}}
+```
+
+## Vendors
+
+_(populate as registered)_
+
+---
+
+## Categories worth tracking
+
+If unsure where to start, the common ones:
+
+- **Cloud** (AWS, GCP, Azure, Vercel, Cloudflare, Render, Fly)
+- **Auth** (Auth0, Clerk, Firebase Auth, Cognito, Stytch)
+- **Database** (managed Postgres, RDS, Supabase, Planetscale, Neon)
+- **Cache** (managed Redis, Upstash, Memorystore)
+- **Queue / streaming** (managed Kafka, SQS, Pub/Sub, Inngest)
+- **Email** (Postmark, SendGrid, Resend)
+- **Payments** (Stripe, Adyen, Lemonsqueezy)
+- **Observability** (Datadog, New Relic, Honeycomb, Grafana Cloud,
+  Sentry, LogRocket)
+- **Analytics** (Segment, Mixpanel, PostHog, Amplitude)
+- **CDN** (Cloudflare, Fastly, Cloudfront)
+- **CI/CD** (GitHub Actions, CircleCI, Buildkite)
+- **Secrets** (Vault, Doppler, 1Password CLI, AWS Secrets Manager)
+- **AI/ML** (OpenAI, Anthropic, Replicate, vLLM hosting)
+
+Skip categories that don't apply to this stack.
+
+---
+
+**Quarterly review:** every quarterly review walks this file and
+checks: anything renewing in the next quarter? Anything we want to
+swap? Anything where switch cost is creeping?

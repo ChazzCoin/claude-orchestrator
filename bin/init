@@ -46,6 +46,13 @@ echo
 
 echo "→ Installing kit files into $TARGET/"
 
+# kit/orchestrator-rules.md → .claude/orchestrator-rules.md
+mkdir -p "$TARGET/.claude"
+if [ -f "$KIT_DIR/kit/orchestrator-rules.md" ]; then
+  cp "$KIT_DIR/kit/orchestrator-rules.md" "$TARGET/.claude/orchestrator-rules.md"
+  echo "    rules:    .claude/orchestrator-rules.md"
+fi
+
 mkdir -p "$TARGET/.claude/skills"
 if [ -d "$KIT_DIR/kit/skills" ]; then
   for skill in "$KIT_DIR/kit/skills"/*/; do
@@ -73,6 +80,9 @@ mirror_files() {
 mirror_files "$KIT_DIR/kit/decisions"  "$TARGET/decisions"  "decisions"
 mirror_files "$KIT_DIR/kit/features"   "$TARGET/features"   "features"
 mirror_files "$KIT_DIR/kit/migrations" "$TARGET/migrations" "migrations"
+mirror_files "$KIT_DIR/kit/risks"      "$TARGET/risks"      "risks"
+mirror_files "$KIT_DIR/kit/incidents"  "$TARGET/incidents"  "incidents"
+mirror_files "$KIT_DIR/kit/reviews"    "$TARGET/reviews"    "reviews"
 
 mkdir -p "$TARGET/state"
 if [ -f "$KIT_DIR/kit/state/README.md" ]; then
@@ -123,6 +133,15 @@ bootstrap_copy "$KIT_DIR/bootstrap/conventions/auth.md.template"           "$TAR
 bootstrap_copy "$KIT_DIR/bootstrap/conventions/error-handling.md.template" "$TARGET/conventions/error-handling.md" "conventions/error-handling.md"
 bootstrap_copy "$KIT_DIR/bootstrap/conventions/naming.md.template"         "$TARGET/conventions/naming.md"      "conventions/naming.md"
 bootstrap_copy "$KIT_DIR/bootstrap/state/manifest.md.template"             "$TARGET/state/manifest.md"          "state/manifest.md"
+bootstrap_copy "$KIT_DIR/bootstrap/AUDIT.md.template"                      "$TARGET/AUDIT.md"                   "AUDIT.md"
+bootstrap_copy "$KIT_DIR/bootstrap/tech-vision.md.template"                "$TARGET/tech-vision.md"             "tech-vision.md"
+bootstrap_copy "$KIT_DIR/bootstrap/tech-principles.md.template"            "$TARGET/tech-principles.md"         "tech-principles.md"
+bootstrap_copy "$KIT_DIR/bootstrap/vendors.md.template"                    "$TARGET/vendors.md"                 "vendors.md"
+bootstrap_copy "$KIT_DIR/bootstrap/cost-tracking.md.template"              "$TARGET/cost-tracking.md"           "cost-tracking.md"
+bootstrap_copy "$KIT_DIR/bootstrap/security-posture.md.template"           "$TARGET/security-posture.md"        "security-posture.md"
+bootstrap_copy "$KIT_DIR/bootstrap/compliance.md.template"                 "$TARGET/compliance.md"              "compliance.md"
+bootstrap_copy "$KIT_DIR/bootstrap/ownership.md.template"                  "$TARGET/ownership.md"               "ownership.md"
+bootstrap_copy "$KIT_DIR/bootstrap/slos.md.template"                       "$TARGET/slos.md"                    "slos.md"
 
 # --- 3. foundation.json (stamped) ------------------------------------
 
@@ -163,8 +182,13 @@ scaffold_dir() {
   fi
 }
 
-scaffold_dir "migrations/active" "migrations/active"
-scaffold_dir "migrations/closed" "migrations/closed"
+scaffold_dir "migrations/active"   "migrations/active"
+scaffold_dir "migrations/closed"   "migrations/closed"
+scaffold_dir "risks/open"          "risks/open"
+scaffold_dir "risks/mitigated"     "risks/mitigated"
+scaffold_dir "reviews/weekly"      "reviews/weekly"
+scaffold_dir "reviews/monthly"     "reviews/monthly"
+scaffold_dir "reviews/quarterly"   "reviews/quarterly"
 
 # --- 5. .gitignore ---------------------------------------------------
 
@@ -186,6 +210,7 @@ if [ ! -f "$TARGET/.gitignore" ]; then
 # Generated state (regenerated on demand)
 state/sync-status.md
 state/audit-progress.md
+state/brief-cache.md
 EOF
   echo "    create:  .gitignore"
 fi
@@ -199,17 +224,34 @@ cat <<EOF
 Next steps:
   1. Open CLAUDE.md and replace {{COMPANY_NAME}} / {{COMPANY_PURPOSE}}.
   2. Open README.md and replace {{COMPANY_NAME}}; tighten copy for this instance.
-  3. Run /audit inside Claude Code to populate stack, contracts,
-     conventions, constraints — that's the v1 entry point for a
-     fresh orchestrator instance.
-  4. Use /register to add sub-repos to state/manifest.md as you
+  3. Read .claude/orchestrator-rules.md — that's the operating
+     discipline. The CTO's analog of claude-kit's task-rules.md.
+  4. Fill in the anchors first — tech-vision.md and tech-principles.md.
+     These shape every ADR you'll file.
+  5. Run /audit inside Claude Code to populate stack, contracts,
+     conventions, platform-constraints — that's the v1 entry point.
+  6. Use /register to add sub-repos to state/manifest.md as you
      spin them up.
+  7. Fill in ownership.md, vendors.md, security-posture.md,
+     compliance.md as data exists. Don't fill them with fiction.
+  8. cost-tracking.md and slos.md stay as scaffolding until you
+     have real numbers. Adding fake numbers is worse than empty.
+
+Operating cadence (per .claude/orchestrator-rules.md):
+  - Weekly: /review weekly — Friday EOD or Monday AM
+  - Monthly: /review monthly — first week of next month
+  - Quarterly: /review quarterly — first week of next quarter
+  - On demand: /decision, /feature, /migration, /risk, /incident
+  - Daily orientation: /brief
 
 When the kit gets new versions later:
   - Run /sync inside Claude Code to pull updates.
-  - Bootstrap files (CLAUDE.md, roadmap.md, contracts/, conventions/,
-    stack/, state/manifest.md) are never touched by /sync. Skills
-    and the templates under decisions/, features/, migrations/ are.
+  - Bootstrap files (CLAUDE.md, README, roadmap, AUDIT, vision,
+    principles, vendors, cost, security, compliance, ownership,
+    slos, stack/, contracts/, conventions/, state/manifest.md) are
+    never touched by /sync. Skills, orchestrator-rules.md, and the
+    templates/READMEs under decisions/, features/, migrations/,
+    risks/, incidents/, reviews/ are.
 
 Source: $KIT_REPO_URL
 EOF

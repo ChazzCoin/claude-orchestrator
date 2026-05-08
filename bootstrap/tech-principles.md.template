@@ -1,0 +1,77 @@
+# Tech principles — {{COMPANY_NAME}}
+
+> The criteria we apply when making architectural decisions. ADRs
+> filed via `/decision` should reference these — either honoring
+> them or *consciously breaking* them with reasoning.
+>
+> Principles change rarely, and only via ADR (file an ADR that
+> supersedes the old principle, then edit this file).
+
+## Principles
+
+### {{Boring tech first}}
+
+{{Default to mature, widely-deployed tools (Postgres, Redis, Kafka,
+Linux) over novel ones. Break this only when there's a measured
+limit the boring choice hits AND evidence the novel one fixes it.
+"Better DX" is not evidence. "Faster benchmark" is not evidence
+unless the slower benchmark is actually a problem in production.}}
+
+### {{Buy what's commodity, build what's differentiating}}
+
+{{Auth, payments, email, error tracking, log aggregation — buy.
+The thing that makes the company unique — build. The line shifts
+over time; revisit at quarterly review.}}
+
+### {{Simplicity beats cleverness}}
+
+{{The clever solution that one person understands is worse than
+the boring solution five people understand. Optimize for "next
+engineer onboarding" cost, not "current engineer cleverness"
+benefit.}}
+
+### {{Contracts before clients}}
+
+{{Define the contract (data model, endpoint shape, event schema)
+before writing the code that consumes it. Contracts live in
+`<orchestrator>/contracts/`. Drift between contract and
+implementation is a bug.}}
+
+### {{Honest reporting both directions}}
+
+{{When a sub-kit reports green, it ran the gate and saw green.
+When it reports stuck, the orchestrator believes it. Same for the
+orchestrator's reports back to the user. No "looks fine" without
+verification.}}
+
+### {{Reversible by default}}
+
+{{Prefer changes that can be undone in a deploy cycle (feature
+flags, additive schema migrations, blue-green deploys) over those
+that can't (destructive migrations, ABI breaks, vendor lock-in).
+When you must make an irreversible change, write the ADR before
+making it, not after.}}
+
+### {{Add your own…}}
+
+{{Each principle is one to three sentences. The more principles
+you have, the less they constrain. Aim for 5–8 that actually shape
+calls; more becomes wallpaper.}}
+
+---
+
+## Decision authority *(generic — refine per company)*
+
+What CTO decides unilaterally vs. with alignment:
+
+- **Unilateral:** convention changes, migration coordination, risk
+  acceptance for low-severity items, vendor swaps under {{$THRESHOLD}},
+  ADRs that don't break existing principles.
+- **Needs alignment:** strategic shifts in `tech-vision.md`, changes
+  to this file, vendor swaps over {{$THRESHOLD}} or with switching
+  costs, anything touching compliance posture.
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}
+**Next review:** {{quarterly review YYYY-QN}}

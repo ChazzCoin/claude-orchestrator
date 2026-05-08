@@ -1,0 +1,68 @@
+# Ownership
+
+Who owns what across the stack. Source of truth for "who do I
+ask?" and "who gets paged?"
+
+> Updated whenever: someone joins / leaves, on-call rotation
+> changes, ownership shifts.
+
+## Sub-repos
+
+| Sub-repo | Primary owner | Backup | On-call rotation |
+|---|---|---|---|
+| {{api}} | {{...}} | {{...}} | {{e.g. PagerDuty schedule "API"}} |
+| {{web}} | | | |
+| {{ios}} | | | |
+| {{devops}} | | | |
+
+## Cross-cutting domains
+
+Some concerns don't map cleanly to a single sub-repo.
+
+| Domain | Owner | Backup | Notes |
+|---|---|---|---|
+| {{Auth (across api/ios/web)}} | {{...}} | {{...}} | {{e.g. "shared library lives in api repo"}} |
+| {{Data infra (Postgres, Redis, queues)}} | {{...}} | {{...}} | |
+| {{Observability stack}} | {{...}} | {{...}} | |
+| {{Security}} | {{...}} | {{...}} | |
+| {{Compliance}} | {{...}} | {{...}} | |
+| {{Vendor management}} | {{...}} | {{...}} | |
+
+## Severity scale *(reference for incidents)*
+
+If the team has a defined sev scale, mirror it here:
+
+- **sev1** — page everyone, customer-facing outage, data loss risk,
+  security exposure
+- **sev2** — page primary on-call, degraded for some users
+- **sev3** — next business day, minor degradation or fix-forward
+
+## Escalation path
+
+For incidents, security findings, or stuck decisions:
+
+1. {{Primary on-call for the affected domain}}
+2. {{Tech lead for that area}}
+3. {{CTO}}
+4. {{Co-founder / executive escalation if external commitment at
+   risk}}
+
+## Where on-call lives
+
+- **Schedule:** {{e.g. PagerDuty / Opsgenie URL}}
+- **Channels:** {{e.g. #oncall in Slack, dedicated incident
+  channel pattern #incident-YYYY-MM-DD-slug}}
+- **Runbooks:** {{e.g. each sub-repo has docs/runbooks/}}
+
+## Communication discipline
+
+- **Internal incident channel:** {{...}}
+- **External status page:** {{e.g. status.example.com — who updates,
+  how often}}
+- **Customer comms:** {{who drafts, who signs off}}
+
+---
+
+**Updates:** when ownership changes, update this file *and* notify
+the people involved. Stale ownership is worse than no ownership —
+it routes pages to the wrong person.

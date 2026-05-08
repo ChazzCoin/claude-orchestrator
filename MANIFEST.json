@@ -11,6 +11,12 @@
     "description": "Files synced into target instances. Updates here propagate via /sync.",
     "files": [
       {
+        "from": "kit/orchestrator-rules.md",
+        "to": ".claude/orchestrator-rules.md",
+        "policy": "file-replace",
+        "note": "CTO operating discipline. Generic across all instances. The orchestrator's analog of claude-kit's task-rules.md."
+      },
+      {
         "from": "kit/skills/",
         "to": ".claude/skills/",
         "policy": "directory-mirror",
@@ -33,6 +39,24 @@
         "to": "migrations/",
         "policy": "directory-mirror-files",
         "note": "Migration template and format docs. Top-level files only — does not touch active/ or closed/."
+      },
+      {
+        "from": "kit/risks/",
+        "to": "risks/",
+        "policy": "directory-mirror-files",
+        "note": "Risk register template and format docs. Top-level files only — does not touch open/ or mitigated/ instance content."
+      },
+      {
+        "from": "kit/incidents/",
+        "to": "incidents/",
+        "policy": "directory-mirror-files",
+        "note": "Incident template and format docs. Top-level files only — does not touch instance incident files."
+      },
+      {
+        "from": "kit/reviews/",
+        "to": "reviews/",
+        "policy": "directory-mirror-files",
+        "note": "Review templates (weekly/monthly/quarterly) + format docs. Top-level files only — does not touch weekly/ monthly/ quarterly/ instance content."
       },
       {
         "from": "kit/state/README.md",
@@ -65,6 +89,15 @@
       { "from": "bootstrap/conventions/error-handling.md.template", "to": "conventions/error-handling.md", "policy": "skip-if-exists" },
       { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
+      { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
+      { "from": "bootstrap/tech-vision.md.template",                "to": "tech-vision.md",             "policy": "skip-if-exists" },
+      { "from": "bootstrap/tech-principles.md.template",            "to": "tech-principles.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/vendors.md.template",                    "to": "vendors.md",                 "policy": "skip-if-exists" },
+      { "from": "bootstrap/cost-tracking.md.template",              "to": "cost-tracking.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/security-posture.md.template",           "to": "security-posture.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/compliance.md.template",                 "to": "compliance.md",              "policy": "skip-if-exists" },
+      { "from": "bootstrap/ownership.md.template",                  "to": "ownership.md",               "policy": "skip-if-exists" },
+      { "from": "bootstrap/slos.md.template",                       "to": "slos.md",                    "policy": "skip-if-exists" },
       {
         "from": "bootstrap/foundation.json",
         "to": ".claude/foundation.json",
@@ -77,7 +110,12 @@
     "description": "Empty directories created at init.",
     "directories": [
       "migrations/active",
-      "migrations/closed"
+      "migrations/closed",
+      "risks/open",
+      "risks/mitigated",
+      "reviews/weekly",
+      "reviews/monthly",
+      "reviews/quarterly"
     ]
   }
 }

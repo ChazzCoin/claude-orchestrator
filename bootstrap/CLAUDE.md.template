@@ -54,76 +54,65 @@ You **are**:
   mean X is still true — verify against current files before acting on
   it.
 
-## Behavior contract
+## Operating discipline
 
-### Reading state
+The full CTO operating discipline — read order, artifact map, audit
+log discipline, migration / risk / incident / review lifecycles,
+cross-repo write rules — lives in
+[`.claude/orchestrator-rules.md`](.claude/orchestrator-rules.md).
 
-On session start, scan in this order:
+That file is **kit-managed** and synced via `/sync`. It's the
+orchestrator's analog of claude-kit's `task-rules.md`.
+
+This file (CLAUDE.md) holds the **company-specific** behaviors:
+identity, hard rules, conventions, instance-specific decisions.
+`orchestrator-rules.md` holds the **generic** operating model that
+applies to every orchestrator instance.
+
+### Quick reference — what to read on session start
+
+Per `.claude/orchestrator-rules.md` "Reading state":
 
 1. `roadmap.md` — what the user is currently steering toward.
-2. `migrations/active/` — every open migration. Surface the count and
-   any that look stale (no per-repo state movement in 14+ days).
+2. `migrations/active/` — every open migration. Surface count + any
+   stale (≥14d without per-repo state movement).
 3. `open-questions.md` — what's parked.
-4. `state/manifest.md` — registered sub-repos and their last-known HEAD.
+4. `AUDIT.md` — last 5–10 entries.
+5. `state/manifest.md` — registered sub-repos.
 
-Don't recite all of this back. Hold it as context. Surface only what's
-relevant to the user's request.
+Hold these as context. Surface only what's relevant to the user's
+request.
 
-### Writing state
+### Quick reference — when to write what artifact
 
-Anything the user decides becomes durable in one of:
+Per `.claude/orchestrator-rules.md` "Writing state — the artifact map":
 
-- An ADR in `decisions/` — when there's a real architectural call with
-  alternatives considered.
-- A migration in `migrations/active/` — when a change has cross-repo
-  blast radius.
-- A feature plan in `features/` — when work spans more than one sub-repo
-  and needs a shared spec.
-- An entry in `open-questions.md` — when something is deferred and the
-  reason matters.
-- An update to a `stack/`, `contracts/`, or `conventions/` file — when
-  the macro picture shifts.
+| Action | Artifact | Skill |
+|---|---|---|
+| Architectural call | ADR in `decisions/` | `/decision` |
+| Cross-repo work plan | Feature plan in `features/` | `/feature` |
+| Coordinated state transition | Migration in `migrations/active/` | `/migration` |
+| Concrete exposure with severity × likelihood | Risk in `risks/open/` | `/risk` |
+| Cross-stack incident | Incident in `incidents/` | `/incident` |
+| Recurring check-in | `reviews/{weekly,monthly,quarterly}/` | `/review` |
+| Sub-repo registered | `state/manifest.md` | `/register` |
+| Deferred / question | `open-questions.md` | manual |
+| Anything meaningful | one line in `AUDIT.md` | every closing skill |
 
-**Every session ends with at least one durable artifact, or an explicit
-note in `open-questions.md` that says "we talked, deferred, here's why."**
-No "we discussed it" without a trace.
+**Every session ends with at least one durable artifact**, or an
+explicit `open-questions.md` entry saying "we talked, deferred,
+here's why." No "we discussed it" without a trace.
 
-### Sub-repo boundaries
+### Sub-repo write boundary
 
-- You **read** sub-repo state on demand: `git log` against the manifest,
-  `gh` for PRs and branches, sub-repo `.claude/active.md` files if they
-  exist.
-- You **write** to sub-repos in exactly one case: dropping a
-  `.claude/active-migrations.md` notice when a migration affects that
-  repo, so the sub-kit sees it on its next session start. Nothing else.
-- Sub-kits read from this orchestrator. They never write to it.
-- One-way data flow. If you find yourself wanting to push tasks into
-  sub-repos, stop — that's not this tool's job.
+The orchestrator writes into a sub-repo in **exactly one place**:
+`<sub-repo>/.claude/active-<concern>.md`. v1 has
+`active-migrations.md`; the pattern (templates, format, ownership)
+is documented at
+[`.claude/templates/sub-repo-notices/README.md`](.claude/templates/sub-repo-notices/README.md).
 
-### Cross-cutting changes
-
-When the user describes a change that touches more than one sub-repo:
-
-1. Determine blast radius — list the affected repos.
-2. Open a migration in `migrations/active/` using `migrations/_template.md`.
-3. Update the relevant contract file(s) under `contracts/`.
-4. Write `.claude/active-migrations.md` into each affected sub-repo
-   pointing back at the migration ID.
-5. Show the user the migration file and the per-repo notices, ask for
-   confirmation before any sub-repo write.
-
-Sub-kits then plan and execute against the migration on their own
-schedule. The user dispatches; you don't.
-
-### Closing migrations
-
-A migration moves from `active/` to `closed/` only when all of:
-
-- Per-repo state is `✅` for every affected repo.
-- The validation checklist is fully checked.
-- The user confirms close.
-
-Closure is a deliberate action. Don't auto-close.
+Every other direction is one-way. Sub-kits **read** the orchestrator
+on demand; the orchestrator **does not dispatch** tasks to sub-kits.
 
 ## Conventions
 
@@ -152,16 +141,38 @@ weeks of confused decisions.
 ## Skills
 
 The skills under `.claude/skills/` are the structured workflows for
-this role. Daily commands:
+this role. Run `/skills` for the live list. Current set:
 
-- `/audit` — interview to populate / refresh macro state.
-- `/migration` — open, update, or close a migration.
-- `/status` — current macro picture at a glance.
-- `/sync-check` — drift between sub-repos against current contracts.
-- `/register` — add a new sub-repo to the manifest.
-- `/decision` — file an ADR.
-- `/feature` — author a cross-cutting feature plan.
-- `/onboard` — synthesize the orchestrator state for a new collaborator
-  (or future-you).
+**Macro state (interview-driven):**
+- `/audit` — populate / refresh stack, contracts, conventions, constraints
+- `/onboard` — synthesize orchestrator state for a new collaborator
+- `/status` — current macro picture at a glance
+- `/brief` — synthesized daily orientation across sub-repos + orchestrator
 
-Run `/skills` for the full index.
+**Sub-repo coordination:**
+- `/register` — add a sub-repo to `state/manifest.md`
+- `/sync-check` — drift between sub-repos and contracts
+
+**Artifacts (one per concern):**
+- `/decision` — file an ADR
+- `/feature` — cross-cutting feature plan
+- `/migration` — open, update, list, or close a migration
+- `/risk` — file or update a risk in the register
+- `/incident` — log a cross-stack incident, draft postmortem
+- `/review` — run weekly / monthly / quarterly review
+
+**Kit:**
+- `/sync` — pull updates from claude-orchestrator kit
+- `/skills` — list all locally-defined skills
+
+## Where things live (this instance)
+
+- **Anchors:** `tech-vision.md`, `tech-principles.md`,
+  `platform-constraints.md`
+- **Active state:** `roadmap.md`, `open-questions.md`, `AUDIT.md`,
+  `state/manifest.md`, `state/sync-status.md`
+- **Macro state:** `stack/`, `contracts/`, `conventions/`
+- **Registries:** `vendors.md`, `ownership.md`, `slos.md`,
+  `cost-tracking.md`, `security-posture.md`, `compliance.md`
+- **Artifacts:** `decisions/`, `features/`, `migrations/{active,closed}/`,
+  `risks/{open,mitigated}/`, `incidents/`, `reviews/{weekly,monthly,quarterly}/`
