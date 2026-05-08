@@ -1,0 +1,125 @@
+# Web design package — {{COMPANY_NAME}}
+
+Web-specific design specs. Components, page templates, web-only
+patterns.
+
+> The high-level identity is in `brand.md`. This file holds web-
+> specific extensions and component-level specs. If web design is
+> simple enough that brand.md covers everything, this file may
+> just say "uses brand.md directly" and stay short.
+
+## Components
+
+### Buttons
+
+| Variant | Background | Text | Border | Use |
+|---|---|---|---|---|
+| Primary | `{{primary hex}}` | `{{snow}}` | none | {{Main CTA}} |
+| Secondary | transparent | `{{primary}}` | `1px {{primary}}` | {{Secondary actions}} |
+| Tertiary | transparent | `{{primary}}` | none | {{Minor links}} |
+| Destructive | `{{error}}` | `{{snow}}` | none | {{Destructive actions, with confirmation}} |
+| Disabled | `{{neutral-light}}` | `{{neutral-mid}}` | none | {{Loading / inactive}} |
+
+States: hover (lighten/darken by {{X%}}), focus (ring `{{2px primary}}` offset {{2px}}), active (shift by {{1px}}), disabled (above).
+
+### Inputs
+
+| Element | Spec |
+|---|---|
+| Text input | {{height: 40px, border 1px neutral-mid, radius-sm}} |
+| Textarea | {{...}} |
+| Select | {{...}} |
+| Checkbox | {{...}} |
+| Radio | {{...}} |
+
+### Cards
+
+- Default: `bg-snow`, `radius-md`, `shadow-sm`
+- Hoverable: adds `shadow-md` on hover with `motion-fast`
+- Selected: border `2px primary`
+
+### Tables
+
+- Header: bg `{{neutral-light}}`, weight semibold
+- Row: 48px min height, divider `1px neutral-mid`
+- Hover: bg `{{neutral-lighter}}`
+
+---
+
+## Page templates
+
+| Template | Purpose | Source |
+|---|---|---|
+| Marketing landing | Top-level marketing | {{Figma frame}} |
+| Product / feature page | Per-feature deep dive | {{...}} |
+| Blog post | Article reading | {{...}} |
+| Documentation | Technical docs | {{...}} |
+| App / dashboard | Logged-in product | {{...}} |
+| Settings | Account / config | {{...}} |
+| Auth (sign in / sign up) | Login flows | {{...}} |
+| Empty / error / 404 | Edge cases | {{...}} |
+
+---
+
+## Layout
+
+- **Container max-width:** {{1200px / 1280px}}
+- **Grid:** {{12-column, 24px gutter at desktop / 16px at mobile}}
+- **Breakpoints:**
+  - `sm`: {{640px}}
+  - `md`: {{768px}}
+  - `lg`: {{1024px}}
+  - `xl`: {{1280px}}
+- **Page-level spacing:** {{section gaps, header heights}}
+
+---
+
+## Iconography on web
+
+- Icon set: {{Heroicons / Phosphor / inhouse}}
+- Sizes used: {{16, 20, 24}}
+- Color: inherit (icons follow text color); stroke width {{1.5}}
+
+---
+
+## Imagery
+
+- **Aspect ratios:** {{16:9, 4:3, square}}
+- **Image quality:** {{webp preferred, jpg fallback}}
+- **Loading:** {{lazy below the fold}}
+- **Alt text:** required for all content images; decorative images
+  use `alt=""`
+
+---
+
+## Dark mode
+
+- **Supported:** {{yes / no / partial}}
+- **Strategy:** {{system default + manual toggle / system only / opt-in}}
+- **Token mapping:** {{neutral palette inverts; semantic colors
+  shift slightly to maintain contrast}}
+
+---
+
+## Web-specific tokens
+
+Where web diverges from brand.md (rare):
+
+| Token | brand.md | web override | Why |
+|---|---|---|---|
+| _(populate or "no overrides")_ | | | |
+
+---
+
+## Accessibility on web
+
+- WCAG 2.1 AA minimum
+- Focus visible (no `outline: none` without replacement)
+- Skip-to-content link on every page
+- Forms: labels associated, errors announced
+- Headings: proper hierarchy (one h1 per page)
+- Color: never the only signal
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}

@@ -1,0 +1,84 @@
+# Asset registry — {{COMPANY_NAME}}
+
+Pointers to canonical asset files. The orchestrator holds the
+**registry**, not the assets themselves (except small, git-diffable
+ones — see "Local assets" below).
+
+> When an asset version changes (logo refresh, icon redo), bump
+> the version + date below. Old version stays referenced for
+> historical assets in shipped artifacts.
+
+## Logos
+
+| Variant | Format | Canonical location | Version | Updated |
+|---|---|---|---|---|
+| Primary, full color | SVG | {{Figma URL or Drive path}} | {{v1}} | {{YYYY-MM-DD}} |
+| Primary, monochrome | SVG | {{...}} | {{v1}} | {{...}} |
+| Wordmark (text only) | SVG | {{...}} | {{v1}} | {{...}} |
+| Mark (icon only) | SVG | {{...}} | {{v1}} | {{...}} |
+| White (for dark bg) | SVG | {{...}} | {{v1}} | {{...}} |
+| Inverse / knockout | SVG | {{...}} | {{v1}} | {{...}} |
+
+### Sizes / formats produced
+
+- SVG (master)
+- PNG @ 1×, 2×, 3× for {{32 / 64 / 128 / 256 / 512}}px
+- Favicon (16, 32, 192, 512)
+- Apple Touch Icon (180×180)
+
+## Iconography
+
+| Set | Source | Style | Where used |
+|---|---|---|---|
+| {{e.g. App icons}} | {{Figma / inhouse / Heroicons / Phosphor}} | {{outline / solid / two-tone}} | {{...}} |
+| {{e.g. Marketing icons}} | {{...}} | {{...}} | {{...}} |
+
+### Icon discipline
+
+- {{Stroke width / fill rule consistency}}
+- {{Sizes the icons live at}}
+- {{When custom vs library — when do we draw new?}}
+
+## Illustrations / photography
+
+| Asset | Type | Canonical | Use |
+|---|---|---|---|
+| {{e.g. Hero illustration}} | {{vector}} | {{Figma}} | {{Marketing landing}} |
+| {{e.g. Product photography}} | {{photo}} | {{Drive folder}} | {{Press kit, marketing}} |
+
+## Local assets *(committed to this orchestrator)*
+
+Small canonical assets committed for git-diffable reference. Big
+binaries don't go here.
+
+```
+design/assets/
+├── logo.svg                  # primary, full color
+├── logo-mono.svg             # monochrome
+├── mark.svg                  # icon only
+├── favicon.ico
+└── ...
+```
+
+*(populate as committed)*
+
+## Where to find everything
+
+- **Master design files:** {{e.g. Figma project URL}}
+- **Brand portal / shared library:** {{URL}}
+- **Press kit:** {{URL}}
+- **Internal storage (raw / source files):** {{Drive folder URL}}
+
+## Discipline
+
+- Update this file when an asset version changes.
+- An asset isn't "shipped" until it's listed here with a canonical
+  pointer.
+- If a sub-project needs an asset, point them at this file (not at
+  a stale Slack message).
+- When an asset is deprecated, mark it `deprecated` here with the
+  successor referenced — don't delete history.
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}

@@ -29,6 +29,12 @@
         "note": "Pinned reference for claude-kit's file shape and conventions. Re-synced manually when claude-kit changes."
       },
       {
+        "from": "kit/design.md",
+        "to": ".claude/design.md",
+        "policy": "file-replace",
+        "note": "Design standards discipline doc — what's tracked, source-of-truth rules, validation pattern. Generic across instances."
+      },
+      {
         "from": "kit/state/sub-repos/_template.md",
         "to": "state/sub-repos/_template.md",
         "policy": "file-replace",
@@ -114,6 +120,12 @@
       { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
       { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/README.md.template",              "to": "design/README.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/brand.md.template",               "to": "design/brand.md",            "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/assets.md.template",              "to": "design/assets.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/materials.md.template",           "to": "design/materials.md",        "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/mobile.md.template",              "to": "design/mobile.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/design/web.md.template",                 "to": "design/web.md",              "policy": "skip-if-exists" },
       { "from": "bootstrap/tech-vision.md.template",                "to": "tech-vision.md",             "policy": "skip-if-exists" },
       { "from": "bootstrap/tech-principles.md.template",            "to": "tech-principles.md",         "policy": "skip-if-exists" },
       { "from": "bootstrap/vendors.md.template",                    "to": "vendors.md",                 "policy": "skip-if-exists" },

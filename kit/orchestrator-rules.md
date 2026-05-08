@@ -57,6 +57,9 @@ open question?"
 | Strategic direction shift | `roadmap.md` update | manual edit |
 | Long-arc tech vision shift | `tech-vision.md` update | manual edit + ADR |
 | Tech principle change | `tech-principles.md` update | manual edit + ADR |
+| Design / brand change (token, palette, typography, voice) | `design/brand.md` update | manual edit + ADR (+ migration if cross-repo) |
+| Design asset version bump | `design/assets.md` update | manual edit |
+| Collateral / mobile / web spec change | `design/{materials,mobile,web}.md` update | manual edit |
 | Macro state file populated or refreshed | `stack/`, `contracts/`, `conventions/`, `platform-constraints.md`, `vendors.md`, etc. | `/audit` (interview-driven) |
 | Recurring check-in | `reviews/{weekly,monthly,quarterly}/` | `/review` |
 | Anything meaningful | One line in `AUDIT.md` | every closing skill writes one |
@@ -88,6 +91,7 @@ appends one line. The point is one-glance history.
 - 🔧 Macro state refreshed (e.g. `/audit` Phase N landed)
 - 🤝 Sub-repo registered / deregistered
 - 🚨 Code touch under user override (orchestrator hand-edited a running file)
+- 🎨 Design / brand / asset change (token, asset version, collateral spec)
 
 ### What NOT to log
 

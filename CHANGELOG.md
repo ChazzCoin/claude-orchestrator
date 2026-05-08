@@ -1,5 +1,64 @@
 # Changelog
 
+## 0.6.0 — 2026-05-08
+
+Wire design standards as a tracked macro-state concern. Visual
+identity, brand language, asset registry, collateral specs, per-
+platform packages — all become orchestrator-tracked truth. PR
+review gains a Design fit check.
+
+**Discipline doc (kit-managed):**
+
+- `kit/design.md` — what's tracked (tokens, brand, assets,
+  collateral, per-platform), source-of-truth rules ("the
+  orchestrator is the registry, not the design tool"), update
+  cadence (token changes paired with ADR + maybe migration),
+  validation pattern, what this discipline is NOT (not a Figma
+  replacement, not a brand guidelines deliverable).
+
+**Bootstrap templates (instance-owned, skip-if-exists):**
+
+- `bootstrap/design/README.md.template` — directory overview
+- `bootstrap/design/brand.md.template` — color palette (primary /
+  neutral / semantic), typography (families + scale + weights),
+  spacing, radii / shadows, motion, voice + tone, accessibility
+  baseline. **Source of truth for tokens.**
+- `bootstrap/design/assets.md.template` — asset registry: logos
+  (with format / size variants), icons, illustrations,
+  photography, local committed assets, sources outside this
+  directory.
+- `bootstrap/design/materials.md.template` — collateral: email
+  signatures, business cards, letterhead, presentation templates,
+  social media assets, swag, press kit.
+- `bootstrap/design/mobile.md.template` — mobile graphics package:
+  iOS + Android app icons (all sizes), splash / launch screens,
+  in-app artwork (empty states, onboarding), mobile-specific
+  tokens, App Store / Play Store assets.
+- `bootstrap/design/web.md.template` — web component specs
+  (buttons, inputs, cards, tables), page templates, layout grid,
+  breakpoints, dark mode strategy, web accessibility.
+
+**Validation:**
+
+- `kit/pr-reviews/_template.md` — Design fit check added to the
+  Macro contract fit section: tokens used vs hardcoded, palette
+  match, typography match, asset registry conformance, per-
+  platform conventions. Voice + tone check for user-facing copy.
+- `kit/orchestrator-rules.md` — artifact map gains rows for design
+  / brand changes (manual edit + ADR + maybe migration), asset
+  version bumps, collateral / mobile / web spec changes; AUDIT
+  emoji 🎨 added.
+- `bootstrap/AUDIT.md.template` legend updated with 🎨.
+- `bootstrap/CLAUDE.md.template` "Where things live" gains a
+  Design / brand section pointing at the new files.
+
+**Wiring:**
+
+- `MANIFEST.json` — kit/design.md → .claude/design.md (file-
+  replace); bootstrap/design/* → design/* (skip-if-exists).
+- `bin/init` — copies design discipline doc + design bootstrap
+  templates.
+
 ## 0.5.0 — 2026-05-08
 
 Two hard rules. Sharpens what was implicit before.

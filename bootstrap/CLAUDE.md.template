@@ -211,6 +211,10 @@ this role. Run `/skills` for the live list. Current set:
 - **Macro state:** `stack/`, `contracts/`, `conventions/`
 - **Registries:** `vendors.md`, `ownership.md`, `slos.md`,
   `cost-tracking.md`, `security-posture.md`, `compliance.md`
+- **Design:** `design/{brand,assets,materials,mobile,web}.md` —
+  canonical visual identity (tokens, palette, typography, voice,
+  asset pointers, collateral specs, per-platform packages). See
+  [`.claude/design.md`](.claude/design.md) for the discipline.
 - **Artifacts:** `decisions/`, `features/`, `migrations/{active,closed}/`,
   `risks/{open,mitigated}/`, `incidents/`,
   `reviews/{weekly,monthly,quarterly}/`, `pr-reviews/`

@@ -42,6 +42,19 @@ same shape (`kit/` synced + `bootstrap/` one-time + `MANIFEST.json` +
 - `security-posture.md` — audits, gaps, practices
 - `compliance.md` — frameworks (SOC2 / GDPR / etc.)
 
+**Design / brand**
+
+- `design/brand.md` — color palette, typography scale, voice, tone
+  *(source of truth for tokens — other places copy from here)*
+- `design/assets.md` — registry of canonical asset files (logos,
+  icons, illustrations) with version + owner
+- `design/materials.md` — collateral specs (business cards,
+  signatures, letterhead, swag, decks)
+- `design/mobile.md` — mobile graphics package (app icons, splash,
+  in-app artwork, store assets)
+- `design/web.md` — web design system specs (components, page
+  templates, breakpoints)
+
 **Active state** *(changes regularly)*
 
 - `roadmap.md` — what's being steered toward
@@ -110,6 +123,7 @@ claude-orchestrator/
 │   ├── orchestrator-rules.md         # CTO operating discipline (analog of task-rules.md)
 │   ├── sub-projects.md               # how to work with kit-enabled + non-kit sub-projects
 │   ├── claude-kit-reference.md       # pinned reference for claude-kit's shape
+│   ├── design.md                     # design standards discipline (tokens, validation)
 │   ├── skills/                       # /audit, /migration, /risk, /incident, /review, ...
 │   ├── decisions/                    # ADR template + format docs
 │   ├── features/                     # feature plan template + format docs
@@ -142,6 +156,7 @@ claude-orchestrator/
 │   ├── stack/                        # inventory + infra-map templates
 │   ├── contracts/                    # models / endpoints / events templates
 │   ├── conventions/                  # auth / error-handling / naming templates
+│   ├── design/                       # brand / assets / materials / mobile / web templates
 │   ├── state/manifest.md.template
 │   └── foundation.json
 ├── bin/init                          # bootstrap a <company>-orchestrator

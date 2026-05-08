@@ -65,6 +65,12 @@ if [ -f "$KIT_DIR/kit/claude-kit-reference.md" ]; then
   echo "    rules:    .claude/claude-kit-reference.md"
 fi
 
+# kit/design.md → .claude/design.md
+if [ -f "$KIT_DIR/kit/design.md" ]; then
+  cp "$KIT_DIR/kit/design.md" "$TARGET/.claude/design.md"
+  echo "    rules:    .claude/design.md"
+fi
+
 # kit/state/sub-repos/_template.md → state/sub-repos/_template.md
 mkdir -p "$TARGET/state/sub-repos"
 if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
@@ -162,6 +168,12 @@ bootstrap_copy "$KIT_DIR/bootstrap/security-posture.md.template"           "$TAR
 bootstrap_copy "$KIT_DIR/bootstrap/compliance.md.template"                 "$TARGET/compliance.md"              "compliance.md"
 bootstrap_copy "$KIT_DIR/bootstrap/ownership.md.template"                  "$TARGET/ownership.md"               "ownership.md"
 bootstrap_copy "$KIT_DIR/bootstrap/slos.md.template"                       "$TARGET/slos.md"                    "slos.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/README.md.template"              "$TARGET/design/README.md"           "design/README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/brand.md.template"               "$TARGET/design/brand.md"            "design/brand.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/assets.md.template"              "$TARGET/design/assets.md"           "design/assets.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/materials.md.template"           "$TARGET/design/materials.md"        "design/materials.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/mobile.md.template"              "$TARGET/design/mobile.md"           "design/mobile.md"
+bootstrap_copy "$KIT_DIR/bootstrap/design/web.md.template"                 "$TARGET/design/web.md"              "design/web.md"
 
 # --- 3. foundation.json (stamped) ------------------------------------
 

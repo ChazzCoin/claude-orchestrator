@@ -1,0 +1,147 @@
+# Mobile design package — {{COMPANY_NAME}}
+
+Mobile-specific design specs and assets. Covers iOS and Android
+where applicable.
+
+> Source files (Figma / Sketch) hold the high-fidelity work. This
+> file holds the spec + asset pointers + platform-specific
+> requirements.
+
+## App icons
+
+### iOS
+
+| Size | Purpose | Source |
+|---|---|---|
+| 1024 × 1024 | App Store / asset master | {{Figma frame}} |
+| 180 × 180 | iPhone @3× | exported |
+| 167 × 167 | iPad Pro @2× | exported |
+| 152 × 152 | iPad @2× | exported |
+| 120 × 120 | iPhone @2× | exported |
+| 87 × 87 | Settings @3× | exported |
+| 80 × 80 | Spotlight @2× | exported |
+| 60 × 60 | Settings @2× | exported |
+
+**Source pack:** {{Figma URL}} or {{`design/assets/ios-app-icon/` if committed}}
+
+### Android
+
+| Density | Size | Purpose |
+|---|---|---|
+| ldpi | 36 × 36 | (legacy) |
+| mdpi | 48 × 48 | base |
+| hdpi | 72 × 72 | |
+| xhdpi | 96 × 96 | |
+| xxhdpi | 144 × 144 | |
+| xxxhdpi | 192 × 192 | |
+| Play Store | 512 × 512 | listing |
+
+Adaptive icon: {{foreground + background layers; use the mark
+from `assets.md`}}.
+
+**Source pack:** {{...}}
+
+---
+
+## Splash / launch screens
+
+### iOS
+
+- {{LaunchScreen.storyboard or static image}}
+- Background: `{{#hex from brand.md}}`
+- Logo: {{centered, mark only, white knockout}}
+- Spec: {{...}}
+
+### Android
+
+- Splash theme: {{...}}
+- Adaptive splash: {{...}}
+
+**Source files:** {{...}}
+
+---
+
+## In-app artwork
+
+### Empty states
+
+| State | Illustration | Source |
+|---|---|---|
+| {{No items yet}} | {{description}} | {{Figma frame}} |
+| {{Search no results}} | {{...}} | {{...}} |
+| {{Offline}} | {{...}} | {{...}} |
+| {{Error}} | {{...}} | {{...}} |
+
+### Onboarding
+
+- {{Welcome screen artwork}}
+- {{Permissions screens}}
+- {{Tour screens}}
+
+Source files: {{...}}
+
+---
+
+## Mobile-specific tokens
+
+Where mobile diverges from web tokens (in `brand.md`):
+
+| Token | Web | Mobile | Why |
+|---|---|---|---|
+| {{e.g. heading-1}} | {{32px}} | {{28px}} | {{Smaller screens}} |
+| {{e.g. body}} | {{16px}} | {{17pt iOS / 16sp Android}} | {{Platform default}} |
+| {{e.g. radius-md}} | {{8px}} | {{12pt}} | {{iOS standard}} |
+
+If no divergence: this section says "uses brand.md tokens
+directly."
+
+---
+
+## Typography on mobile
+
+- iOS: {{system default (San Francisco) / custom font with
+  fallback}}
+- Android: {{Roboto / custom}}
+- Custom fonts must use the iOS/Android font loading pattern; see
+  the relevant sub-repo's `CLAUDE.md`.
+
+---
+
+## Platform conventions honored
+
+- **iOS HIG:** {{which guidelines we explicitly follow / break,
+  with reasoning}}
+- **Material Design:** {{which guidelines we explicitly follow /
+  break}}
+
+---
+
+## Asset packaging
+
+How assets reach the apps:
+
+- **iOS:** {{Asset catalog (`Assets.xcassets`); managed by iOS
+  team; bumped via design migration when assets change}}
+- **Android:** {{`res/drawable-*`; managed by Android team; same}}
+
+When tokens or assets change here:
+- File an ADR if the change affects shipping behavior
+- Open a migration if multiple repos need to adopt
+- The sub-repo task spec references this file
+
+---
+
+## App Store / Play Store assets
+
+| Asset | iOS | Android |
+|---|---|---|
+| Screenshots | {{1290×2796 6.7", 1242×2208 5.5"}} | {{1080×1920 phone, 1920×1200 tablet}} |
+| Preview video | {{15-30s, dimensions}} | {{30s, dimensions}} |
+| Feature graphic | n/a | {{1024×500}} |
+| Promo text | {{170 chars}} | n/a |
+
+**Source files:** {{Figma URL}}
+
+---
+
+**Last updated:** {{YYYY-MM-DD}}

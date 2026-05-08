@@ -62,6 +62,28 @@ test, 1 doc">)
 - <which principles apply, are they honored or consciously broken?
   if broken — is the reason in the PR body or an ADR?>
 
+**Design fit** *(when the PR touches UI, design assets, or
+collateral — from `design/brand.md`, `design/assets.md`, and any
+applicable `design/<platform>.md`):* ✅ / ⚠ / n/a / ❌
+- **Tokens used vs hardcoded:** <are colors / type / spacing values
+  pulling from the token set, or hardcoded? hardcoded values that
+  match the palette are still drift in waiting>
+- **Color palette match:** <colors used in this diff vs
+  `design/brand.md` palette>
+- **Typography match:** <type scale + families used vs
+  `design/brand.md`>
+- **Asset registry:** <new images / icons added — are they in
+  `design/assets.md`? do they reference the canonical source?>
+- **Platform conventions:** <if mobile, conformance with
+  `design/mobile.md`; if web, `design/web.md`>
+- **Notes:** <specifics, or "no design content in this PR — n/a">
+
+**Voice + tone** *(when the PR touches user-facing copy — from
+`design/brand.md` voice section):* ✅ / ⚠ / n/a / ❌
+- <copy matches voice; uses approved words; avoids the don't-use
+  list; tone fits context>
+
+
 ## Cross-platform fit
 
 This is the question only the orchestrator can answer.
