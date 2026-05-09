@@ -12,6 +12,11 @@ table. Self-includes — this skill shows up in its own output.
 The output is the only thing in the response (no preamble, no
 closing commentary). Render in under 5 seconds.
 
+**Output pattern:** [Pattern 33 — Command reference](../../output-catalogue.md#33--command-reference)
+adapted to a single-table form (no usage / examples / flags
+sections — those live in each individual SKILL.md). Each row is
+`/<name>` + first-sentence description.
+
 ## What to do
 
 1. **List subdirectories** of `.claude/skills/`. Each

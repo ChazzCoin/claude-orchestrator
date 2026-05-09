@@ -271,23 +271,33 @@ Current set:
 
 | Skill | Purpose |
 |---|---|
-| `/audit` | Interview-driven macro audit — stack, contracts, conventions, constraints. v1 entry point. |
-| `/brief` | Synthesized daily orientation across sub-repos + orchestrator artifacts (stub). |
+| `/audit` | Interview-driven macro audit — stack, contracts, conventions, constraints, company info. v1 entry point. |
+| `/backlog` | Compile cross-sub-project backlog view (queued work, sorted by priority + age). |
+| `/brief` | What's *changed* since last session — delta layer over `/status` (stub). |
 | `/decision` | Draft a macro-level ADR, referencing `tech-principles.md`. |
 | `/feature` | Author a cross-cutting feature plan. |
+| `/inbox` | Per-person addressed messaging — send / read / list. |
 | `/incident` | Log a cross-stack incident, draft postmortem (stub). |
 | `/migration` | Open, update, list, or close a cross-repo migration. |
 | `/onboard` | Synthesize current orchestrator state for a new collaborator. |
-| `/register` | Register a new sub-repo in `state/manifest.md`. |
+| `/refresh` | Fetch origin for every cloned sub-repo; writes `state/last-fetch.json`. |
+| `/register` | Register a new sub-repo in `state/manifest.md` and clone into `repos/<name>/`. |
 | `/review` | Run weekly / monthly / quarterly review (stub). |
 | `/risk` | File a risk in the register, update, or mitigate (stub). |
+| `/roadmap` | Compile cross-sub-project roadmap view (phases aligned). |
 | `/skills` | List every locally-defined skill. |
-| `/status` | Current macro picture at a glance. |
+| `/status` | Current macro picture at a glance — full cross-repo compiler. |
 | `/sync` | Pull updates from this kit into the instance. |
 | `/sync-check` | Surface drift between sub-repos and the orchestrator's contracts. |
+| `/tasks` | Compile cross-sub-project active-task view (in-progress + next up). |
 
 **(stub)** = skill scaffolding is in place; behavior contract is
 provisional and gets refined on first real use.
+
+Every skill declares an output pattern from
+[`kit/output-catalogue.md`](kit/output-catalogue.md) — see
+[`kit/skill-architecture.md`](kit/skill-architecture.md) for the
+discipline.
 
 ---
 

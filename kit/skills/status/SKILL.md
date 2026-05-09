@@ -12,6 +12,17 @@ recent shipped work into one rendered report.
 This skill is **read-only**. It writes nothing — just compiles from
 artifacts already on disk.
 
+**Output pattern:** composition of
+[Pattern 28 — Stats card grid](../../output-catalogue.md#28--stats-card-grid)
+for headline counts +
+[Pattern 17 — Git branch overview](../../output-catalogue.md#17--git-branch-overview)
+for the sub-repos block (per-repo state line with glyph + branch +
+ahead/behind + sub-kit task) +
+[Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+elements for migrations / events / recently shipped. Sections marked
+by `▸` glyph; emoji used sparingly (`⚪ 🟡 ✅` for migration state,
+`⚠` for stale / blocking).
+
 ## Behavior contract
 
 - **Identity required.** Read `.claude/local-config.json` for `me`

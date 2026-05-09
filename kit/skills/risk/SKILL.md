@@ -14,6 +14,13 @@ description: File a new risk in risks/open/, update an existing one, list open r
 Manage `risks/open/` and `risks/mitigated/`. Modes: file, update,
 list, mitigate, accept.
 
+**Output pattern:** [Pattern 6 — Severity audit](../../output-catalogue.md#6--severity-audit)
+for `list` mode (severity-ordered with bars inversely proportional
+to severity — criticals are short urgent stubs);
+[Pattern 25 — Alert variants](../../output-catalogue.md#25--alert-variants)
+for `file` mode (warning variant on confirmation); rendered risk
+files follow `risks/_template.md` structure.
+
 ## Modes
 
 ### File a new risk

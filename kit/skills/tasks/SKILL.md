@@ -9,8 +9,13 @@ Aggregate active-task state from every registered sub-repo into one
 view. Writes `state/tasks-compiled.md` and surfaces a chat summary.
 
 **Active scope only** — in-progress and next-up. Backlogs are noise
-for the macro view; if the user wants depth, they open the sub-repo's
-own task system.
+for the macro view; for backlog see `/backlog`.
+
+**Output pattern:** [Pattern 4 — Sprint task board](../../output-catalogue.md#4--sprint-task-board)
+adapted for cross-repo (one section per sub-repo with item count and
+mini-progress dots; collapsible per-task detail). Chat summary uses
+[Pattern 28 — Stats card grid](../../output-catalogue.md#28--stats-card-grid)
+lite for active counts + stale flags.
 
 ## Behavior contract
 

@@ -14,6 +14,11 @@ head). The orchestrator's job is to ask the right questions in the
 right order, write answers to the right files, and surface what's still
 missing.
 
+**Output pattern:** [Pattern 30 — Multi-step wizard](../../output-catalogue.md#30--multi-step-wizard)
+for the phase progression (current phase highlighted, others queued
+or done) + [Pattern 26 — Empty state](../../output-catalogue.md#26--empty-state)
+when a section can't be filled (capture as open question, move on).
+
 Per CLAUDE.md: blunt resonant honesty. If the user can't answer, they
 can't answer — note it as an open question and move on. Don't fill in
 guesses.
@@ -150,6 +155,32 @@ Ask:
   months
 
 This phase informs roadmap conversations later.
+
+### Phase 8 — Company information
+
+Goal: populate `company-profile.md` (structured, official) and seed
+`company-notes.md` (freeform, internal). Optional but high-value —
+gives `/onboard` a strong starting picture for new collaborators.
+
+For `company-profile.md`:
+
+1. **Mission** — one paragraph. Why this company exists.
+2. **Products** — one subsection per product line (status, audience,
+   differentiator).
+3. **Leadership** — founders, exec team, advisors. (Not on-call —
+   that's `ownership.md`.)
+4. **Mottos / pillars** — short load-bearing internal sayings.
+5. **Strategic direction (current)** — current focus, bets we're
+   making, bets we're declining.
+
+For `company-notes.md`: skip the interview — this is the user's
+free-form pad. Just confirm the file exists and ask if they want to
+seed it with anything specific (recent thinking, observations).
+
+For `events.md` Upcoming section: ask if there are imminent events
+worth tracking (conference next month, demo, board meeting). Seed
+the file with what they have; future events get added by hand
+later.
 
 ## Output discipline
 

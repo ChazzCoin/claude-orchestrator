@@ -14,6 +14,12 @@ each call) and surfaces a chat summary.
 view is regenerated machinery showing what each sub-project is
 actively planning side-by-side.
 
+**Output pattern:** [Pattern 3 — Roadmap timeline](../../output-catalogue.md#3--roadmap-timeline)
+in multi-track form (one track per sub-repo, phases aligned by
+number when they correspond) for the compiled artifact. Chat summary
+uses [Pattern 28 — Stats card grid](../../output-catalogue.md#28--stats-card-grid)
+lite for headline counts + brief alignment notes.
+
 ## Behavior contract
 
 - **Read-only against sub-repos.** Reads from `repos/<name>/`; no

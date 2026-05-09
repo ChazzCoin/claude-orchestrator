@@ -12,23 +12,36 @@ decided.
 For a new collaborator landing in this orchestrator instance cold, or
 for future-you returning after weeks away.
 
+**Output pattern:** [Pattern 30 — Multi-step wizard](../../output-catalogue.md#30--multi-step-wizard)
+shape (numbered sections as steps the reader walks through) +
+[Pattern 33 — Command reference](../../output-catalogue.md#33--command-reference)
+for the "how to operate" section.
+
 ## Behavior contract
 
 - **Read the canonical sources, in order:**
   1. `README.md` — what this orchestrator instance is for
   2. `CLAUDE.md` — the working contract
-  3. `stack/inventory.md` — what we have
-  4. `stack/infra-map.md` — where it runs
-  5. `platform-constraints.md` — what bounds design
-  6. `contracts/` — current contract surface (markdown spec)
-  7. `conventions/` — naming, errors, auth
-  8. `migrations/active/` — what's in flight cross-repo
-  9. `decisions/` — recent ADRs (last 5 by date)
-  10. `roadmap.md` — current direction
-  11. `open-questions.md` — what's parked
+  3. `company-profile.md` — mission, products, leadership, mottos,
+     strategic direction
+  4. `stack/inventory.md` — what we have
+  5. `stack/infra-map.md` — where it runs
+  6. `platform-constraints.md` — what bounds design
+  7. `contracts/` — current contract surface (markdown spec)
+  8. `conventions/` — naming, errors, auth
+  9. `migrations/active/` — what's in flight cross-repo
+  10. `decisions/` — recent ADRs (last 5 by date)
+  11. `roadmap.md` — current direction
+  12. `events.md` — upcoming events (conferences, demos, launches)
+  13. `open-questions.md` — what's parked
 
   Any may be partial; render the section without it rather than
   guessing.
+
+- **Prerequisite check.** If `repos/` is empty (no sub-repo
+  checkouts), recommend `bin/setup` before proceeding — the
+  walkthrough's "in flight" section needs sub-repo state to be
+  meaningful.
 
 - **Render as a guided walkthrough, not a digest.** Group by "what
   this is" → "the stack" → "the contracts" → "what's in flight" → "what's
@@ -45,13 +58,25 @@ for future-you returning after weeks away.
 ```markdown
 # 👋 Orchestrator overview — <company>
 
-> **What this is.** <one sentence pulled from README.md>
+> **What this is.** <one sentence pulled from README.md or company-profile.md>
 > **Where things are.** <one sentence — N sub-repos, M active migrations,
 > K open questions, last decision YYYY-MM-DD>
 
 ---
 
-## 1. The stack
+## 1. The company
+*From `company-profile.md`.*
+
+- **Mission:** <one line from "Mission" section>
+- **Products:** <product names, one line each if more than one>
+- **Strategic direction:** <one line from "Strategic direction (current)">
+- **Mottos:** <one line, max 2 mottos>
+
+For depth: [`company-profile.md`](company-profile.md).
+
+---
+
+## 2. The stack
 *From `stack/inventory.md`.*
 
 - **api** — <one line>
@@ -64,7 +89,7 @@ For depth: [`stack/inventory.md`](stack/inventory.md),
 
 ---
 
-## 2. The constraints that bound design
+## 3. The constraints that bound design
 *From `platform-constraints.md`. The 3–5 highest-leverage rules.*
 
 - <bullet>
@@ -74,7 +99,7 @@ For depth: [`platform-constraints.md`](platform-constraints.md).
 
 ---
 
-## 3. The contracts
+## 4. The contracts
 *From `contracts/`.*
 
 - **Models:** <count of entities, one-line summary>
@@ -85,7 +110,7 @@ For depth: [`contracts/`](contracts/).
 
 ---
 
-## 4. In flight
+## 5. In flight
 *From `migrations/active/` and `roadmap.md` "Now".*
 
 **Active migrations (<count>):**
@@ -98,7 +123,16 @@ For depth: `/status`, then individual migration files.
 
 ---
 
-## 5. Recent decisions
+## 6. Coming up
+*From `events.md` "Upcoming" — next 14 days only.*
+
+- <YYYY-MM-DD · title> *(or "no events scheduled")*
+
+For depth: [`events.md`](events.md).
+
+---
+
+## 7. Recent decisions
 *From `decisions/`, last 5 by date.*
 
 - **<YYYY-MM-DD-name>** — <one line on the call>
@@ -107,7 +141,7 @@ For depth: [`decisions/`](decisions/).
 
 ---
 
-## 6. Open questions
+## 8. Open questions
 *From `open-questions.md`. Active items count + any tagged blocking.*
 
 - <blocking items, with reason>
@@ -115,14 +149,34 @@ For depth: [`decisions/`](decisions/).
 
 ---
 
-## 7. How to operate
+## 9. How to operate
 *Brief.*
 
-- `/status` — daily overview
-- `/sync-check` — refresh sub-repo state
-- `/migration` — open / update / close cross-repo changes
+**Daily:**
+- `/status` — current macro picture (from cached state)
+- `/refresh` — fetch latest from all sub-repos
+- `/brief` — what's changed since last session
+- `/inbox` — read / send addressed messages
+
+**Compilers:**
+- `/roadmap` — phase view across all sub-repos
+- `/tasks` — active task view across all sub-repos
+- `/backlog` — queued backlog across all sub-repos
+- `/sync-check` — drift between sub-repos and contracts
+
+**Authoring (write artifacts):**
 - `/decision` — file an ADR
 - `/feature` — author a cross-cutting feature plan
+- `/migration` — open / update / close cross-repo migration
+- `/risk` — file or update a risk
+- `/incident` — log a cross-stack incident, draft postmortem
+- `/review` — run weekly / monthly / quarterly review
+
+**Setup / maintenance:**
+- `/register` — add a new sub-repo
+- `bin/setup` — clone all registered sub-repos (collaborator onboarding)
+- `/sync` — pull updates from claude-orchestrator kit
+- `/audit` — populate / refresh stack, contracts, conventions
 
 The full skill index lives in [`.claude/skills/`](.claude/skills/).
 

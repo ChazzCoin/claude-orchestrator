@@ -9,6 +9,16 @@ Author a feature plan in `features/` for work that spans more than one
 sub-repo. The feature plan is the orchestrator's contribution to a
 piece of work that sub-kits will execute.
 
+**Output pattern:** the rendered feature plan follows
+`features/_template.md` markdown structure (durable artifact, not
+catalogued). Chat output during drafting uses
+[Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for the per-repo plan walkthrough and
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+when the file lands. For impact assessment, may compose with
+[Pattern 4 — Sprint task board](../../output-catalogue.md#4--sprint-task-board)
+showing per-repo work.
+
 ## When this is the right shape
 
 - Feature touches 2+ sub-repos

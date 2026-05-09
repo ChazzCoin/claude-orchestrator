@@ -11,6 +11,13 @@ drift between sub-repos and the active migrations.
 
 This skill **regenerates** state. It does not author anything new.
 
+**Output pattern:** [Pattern 17 — Git branch overview](../../output-catalogue.md#17--git-branch-overview)
+for the per-sub-repo block +
+[Pattern 6 — Severity audit](../../output-catalogue.md#6--severity-audit)
+shape for the Drift section (untracked branches and untracked commits
+ordered by impact). Drift is the headline — surface it loudly when it
+exists.
+
 ## Behavior contract
 
 - **Read `state/manifest.md` first.** Only query registered sub-repos.

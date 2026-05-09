@@ -13,6 +13,14 @@ description: Open a new incident, update an in-flight one, draft the postmortem,
 
 Manage `incidents/`. Modes: open, update, postmortem, close.
 
+**Output pattern:** [Pattern 25 — Alert variants](../../output-catalogue.md#25--alert-variants)
+(error variant) when an incident is opened or surfaced;
+[Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for the timeline mode (chronological event glyphs); the rendered
+postmortem follows `incidents/_template.md` markdown structure;
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+when the postmortem lands.
+
 ## Modes
 
 ### Open

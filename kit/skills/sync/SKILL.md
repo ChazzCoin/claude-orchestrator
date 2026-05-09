@@ -16,6 +16,22 @@ reviewed before they propagate.
 Per CLAUDE.md ethos: honest about conflicts. Surface drift; don't
 silently merge.
 
+**Output pattern:** [Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for the diff classification report (each file as a timeline event
+with its classification glyph) +
+[Pattern 25 — Alert variants](../../output-catalogue.md#25--alert-variants)
+for conflicts (warning variant) +
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+on successful sync completion.
+
+> **Future:** This skill is a candidate for conversion to scripted
+> form per
+> [`skill-architecture.md`](../../skill-architecture.md) — the
+> classify/copy/pin-bump flow is mechanical. A future `bin/sync`
+> would handle the deterministic parts; the skill would shrink to
+> a thin wrapper that surfaces the script's diff report and
+> proposes user-approved actions. Tracked for v0.11.0.
+
 ## Behavior contract
 
 - **Read `.claude/foundation.json` first.** It tells you the kit
