@@ -37,6 +37,10 @@ Detect from user input. Object type is `task` (default) or `phase`.
   `retired/` with reason.
 - **List** — "/propose list", "what have I proposed for
   `<repo>`", "show all proposals" → enumerate proposals.
+- **Show** — "/propose show `<slug>`", "show me the
+  `<slug>` proposal", "what's in phase `<id>` for
+  `<repo>`" → render the full proposal body so the user can
+  review it without opening the file.
 
 If ambiguous, ask which.
 
@@ -226,6 +230,46 @@ point of staging.
 
 ---
 
+---
+
+## Mode: Show
+
+### Process
+
+1. **Identify** target slug or phase ID + repo. If user said
+   "show refactor-auth-middleware," match against
+   `proposals/<repo>/backlog/<slug>.md` files across all repos
+   (ask if multiple matches). For phases, locate `## Phase <id>`
+   in `proposals/<repo>/PHASES.md`.
+2. **Locate the file**:
+   - Tasks first try `proposals/<repo>/backlog/<slug>.md`. If
+     absent, try `promoted/` (with note: "this proposal was
+     promoted on <date> as TASK-NNN, here's the archived body")
+     and `retired/` (with note: "this proposal was retired on
+     <date>: <reason>").
+   - Phases: read the `## Phase <id>` section in PHASES.md.
+3. **Render the body to chat.** Full markdown — frontmatter on
+   top, body sections, References. For phases, also list the
+   slugs of tasks under it with each task's status (backlog /
+   promoted / retired) and target_phase consistency check.
+4. **Surface action options:**
+   - For backlog: `/propose update <slug>`, `/promote <slug>`,
+     `/propose retire <slug>`.
+   - For promoted: link to the PR URL recorded in
+     `promoted_pr` frontmatter.
+   - For retired: re-propose by running `/propose new` with a
+     fresh slug; the retired body remains as reference.
+
+### Style
+
+- **Render the file as it is** — markdown, frontmatter, body. No
+  reformatting.
+- **Quote the user's `## Proposal notes` section** verbatim —
+  that's where iteration history lives.
+- **Don't truncate.** Full body. The user asked to see it.
+
+---
+
 ## Style rules
 
 - **Keep proposals under one screen.** A proposal that's growing
@@ -289,5 +333,7 @@ For each mode:
   (phases) with reason. PHASES.md task lists cleaned up.
 - **List:** rendered scoped enumeration with counts and next-move
   pointers.
+- **Show:** full proposal body rendered to chat (or phase entry +
+  task list); action options surfaced; no file changes.
 
 In all cases: no auto-commit. The user commits.

@@ -169,12 +169,44 @@ If ambiguous, ask which.
 5. **Pull latest main** in the sub-repo.
 6. **Assign TASK-NNN to each task** in the order listed in the
    phase. Numbers are sequential starting from the next available.
-7. **Determine the sub-repo phase number.** Read
-   `repos/<repo>/tasks/PHASES.md`:
-   - If a phase with the same proposal phase ID exists and is
-     unfilled (no exit criteria, placeholder), update it.
-   - Otherwise, append as the next phase number in the sub-repo's
-     PHASES.md.
+7. **Determine the sub-repo phase number.** Proposal phase IDs
+   (`Phase 1`, `Phase 2`, ...) are local to the proposal; the
+   sub-repo's existing `<repo>/tasks/PHASES.md` may already have
+   phases with conflicting numbers. Resolve:
+
+   a. Read `repos/<repo>/tasks/PHASES.md` and parse all existing
+      phase headings.
+   b. If the sub-repo already has phases 1..N, the proposal's
+      phases append starting at N+1 by default. Surface the
+      mapping to the user:
+
+      > "Mapping proposal phases to sub-repo phase numbers:
+      >   - proposals/<repo>/PHASES.md `Phase 1` → sub-repo
+      >     `Phase 4` (sub-repo currently at phase 3)
+      >   - proposals/<repo>/PHASES.md `Phase 2` → sub-repo
+      >     `Phase 5`
+      > Proceed? [yes / no]"
+
+   c. **Rewrite each promoted task's `phase:` frontmatter** to
+      reflect the assigned sub-repo phase number (not the
+      proposal phase number). This is the load-bearing step —
+      task spec frontmatter must point at the phase number that
+      actually exists in `<repo>/tasks/PHASES.md`, not the one
+      from the proposal.
+   d. **Rewrite the phase entry's `Depends on:` field**, if it
+      references other proposal-phase IDs that have been promoted
+      earlier, to the sub-repo phase numbers those map to.
+   e. If the sub-repo has placeholder phases (heading but no
+      `Outcome:` / `Exit criteria:` body), the user can choose to
+      fill those instead of appending. Ask:
+
+      > "Sub-repo `<repo>` has unfilled `Phase <N>` (no body
+      > yet). Fill it with this proposed phase, or append at
+      > `Phase <M>`?"
+
+   f. Persist the proposal-to-sub-repo phase number mapping in
+      the proposal's archived frontmatter at promotion (so the
+      audit trail captures which proposal phase mapped where).
 8. **Branch + write + push + PR:**
    ```sh
    git -C repos/<repo> checkout -b chore/orch-phase-<id>
