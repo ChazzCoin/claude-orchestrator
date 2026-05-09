@@ -152,14 +152,21 @@ already in the manifest in one shot), use `bin/setup` instead.
     is a preferences-aware fork (ID
     `auto-scaffold-shared-on-register`, low-risk).
 
-    **Preferences-recipe step 1 (read):** check
-    `state/preferences.md` for the ID. If found:
+    **Implementation:** invoke `bin/preferences-check` for the
+    mechanical steps. The script reads `state/preferences.md`,
+    writes `state/decision-log.md`, and returns JSON the skill
+    consumes. The skill handles the user-facing prompts +
+    confirmations.
+
+    **Preferences-recipe step 1 (read):**
+    ```sh
+    bin/preferences-check resolve auto-scaffold-shared-on-register
+    ```
+    Returns JSON: `{found: bool, ..., disclosure_message: "..."}`.
+    If `found: true`:
     - Apply silently — proceed to scaffold without asking.
-    - **First apply per session:** disclose
-      > "ℹ Per preference `auto-scaffold-shared-on-register` (set
-      > <date> by <handle>: <evidence>), scaffolding shared/
-      > automatically. Revoke:
-      > `/preferences revoke auto-scaffold-shared-on-register`"
+    - **First apply per session:** print the JSON's
+      `disclosure_message`.
 
     If not found, ask:
 
@@ -170,19 +177,24 @@ already in the manifest in one shot), use `bin/setup` instead.
     > You can also skip — the files can be created lazily later."
 
     **Preferences-recipe step 4 (log):** after the user answers,
-    append to `state/decision-log.md`:
-    `- <today> <handle>: <yes|no> — <repo-name>` under section
-    `## auto-scaffold-shared-on-register`.
+    invoke:
+    ```sh
+    bin/preferences-check log auto-scaffold-shared-on-register \
+      <yes|no> --context "sub-repo: <name>"
+    ```
+    Returns JSON: `{logged: true, streak: N, should_offer: bool,
+    offer_prompt: "..."}`.
 
-    **Preferences-recipe step 5 (offer threshold):** if streak ≥ 3
-    same-answer and no active cooldown, prompt:
-
-    > "I've seen you answer `<value>` to this 3 times in a row.
-    > Want me to remember it as a preference and stop asking?
-    > [yes / no]"
-
-    On `yes` → write preference, archive the log section.
-    On `no`/silence → set cooldown of 5 decisions in the log entry.
+    **Preferences-recipe step 5 (offer threshold):** if
+    `should_offer: true`, print the JSON's `offer_prompt` to the
+    user. On `yes`:
+    ```sh
+    bin/preferences-check capture auto-scaffold-shared-on-register \
+      <yes|no> --evidence "<user's most recent answer>" \
+      --source offer-accepted
+    ```
+    On `no`/silence: nothing further; the script's `log` call
+    already updated the cooldown.
 
     If user declines the original scaffold (regardless of capture
     flow), skip to step 12.
