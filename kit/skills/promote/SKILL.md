@@ -45,6 +45,19 @@ If ambiguous, ask which.
 - **The proposal must be in `backlog/`** (or for phases, in
   `PHASES.md` and not marked retired). Already-promoted or retired
   proposals are refused.
+- **Validate before promoting.** Invoke
+  `bin/validate-task-spec <proposal-path>` for each task to be
+  promoted. If validation fails, refuse to promote that task and
+  surface the validation errors. This makes the
+  `governance/task-spec-shape.md` rules enforceable rather than
+  aspirational.
+- **PR flow via the standard script.** Invoke
+  `bin/open-orch-pr --repo <name> --branch
+  orch-task-NNN-<slug> --title "TASK-NNN — <title>"
+  --body-file <path>` after writing the rendered task spec into
+  `repos/<name>/`. The script standardizes pull/branch/commit/
+  push/PR-create across all skills that open orchestrator-authored
+  PRs.
 - **Cross-reference check** — if the proposal's frontmatter
   `depends_on:` references other proposal slugs that haven't been
   promoted yet, warn and ask whether to proceed (the sub-repo

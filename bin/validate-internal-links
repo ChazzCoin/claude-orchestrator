@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+#
+# bin/validate-internal-links — verify all internal markdown links resolve.
+#
+# Output: Pattern 6 — Severity audit
+#         (per-file errors as findings; final tally as severity summary;
+#          see .claude/output-catalogue.md)
+#
+# Usage:
+#   bin/validate-internal-links            # run from orchestrator root
+#   bin/validate-internal-links --quiet    # only show errors + summary
+#   bin/validate-internal-links --json     # machine-readable output
+#
+# Behavior:
+#   - Walks markdown files under kit/, bootstrap/, decisions/, features/,
+#     migrations/, proposals/, risks/, incidents/, reviews/, pr-reviews/,
+#     state/sub-repos/, and the orchestrator root.
+#   - For each [text](relative-path) link, verifies the target file
+#     exists. External links (http*, mailto:) and anchor-only (#section)
+#     links are skipped.
+#   - Image links (![alt](path)) are also validated.
+#   - Exits 0 if all links resolve, 1 if any are broken, 2 on usage error.
+#
+# Run via git pre-commit hook or in CI to catch broken-reference bugs
+# at commit time rather than discovery time.
+
+set -euo pipefail
+
+QUIET=0
+JSON_OUTPUT=0
+for arg in "$@"; do
+  case "$arg" in
+    --quiet) QUIET=1 ;;
+    --json) JSON_OUTPUT=1 ;;
+    -h|--help)
+      grep '^#' "$0" | head -30 | sed 's/^# \?//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ORCH_ROOT"
+
+SEARCH_PATHS=(
+  "kit"
+  "bootstrap"
+  "decisions"
+  "features"
+  "migrations"
+  "proposals"
+  "risks"
+  "incidents"
+  "reviews"
+  "pr-reviews"
+  "state/sub-repos"
+)
+
+# Build the file list. Top-level *.md handled separately.
+FILES=()
+for path in "${SEARCH_PATHS[@]}"; do
+  if [ -d "$path" ]; then
+    while IFS= read -r -d '' f; do
+      FILES+=("$f")
+    done < <(find "$path" -type f -name "*.md" -print0)
+  fi
+done
+# Top-level markdown files
+while IFS= read -r -d '' f; do
+  FILES+=("$f")
+done < <(find . -maxdepth 1 -type f -name "*.md" -print0)
+
+ERRORS=()
+FILES_CHECKED=0
+LINKS_CHECKED=0
+
+for md_file in "${FILES[@]}"; do
+  FILES_CHECKED=$((FILES_CHECKED + 1))
+  base_dir="$(dirname "$md_file")"
+
+  # Extract all markdown links: [text](target)
+  # grep -oE outputs each match; with -n, each line is "lineno:match".
+  # Multiple matches per line each get their own output line.
+  while IFS= read -r match; do
+    LINKS_CHECKED=$((LINKS_CHECKED + 1))
+    line_num="${match%%:*}"
+    rest="${match#*:}"
+    # Extract target between ( and )
+    target="${rest##*\(}"
+    target="${target%\)*}"
+
+    # Skip external
+    case "$target" in
+      http://*|https://*|mailto:*) continue ;;
+    esac
+
+    # Strip anchor
+    path_only="${target%%#*}"
+    [ -z "$path_only" ] && continue
+
+    # Resolve
+    if [[ "$path_only" = /* ]]; then
+      resolved="$ORCH_ROOT$path_only"
+    else
+      resolved="$base_dir/$path_only"
+    fi
+
+    # Normalize (resolve .. segments etc.)
+    resolved_canonical="$(cd "$(dirname "$resolved")" 2>/dev/null && pwd)/$(basename "$resolved")" || resolved_canonical="$resolved"
+
+    if [ ! -e "$resolved" ] && [ ! -e "$resolved_canonical" ]; then
+      ERRORS+=("$md_file:$line_num → $target")
+    fi
+  done < <(grep -nE -o '!?\[[^]]*\]\([^)]+\)' "$md_file" 2>/dev/null || true)
+done
+
+if [ "$JSON_OUTPUT" -eq 1 ]; then
+  printf '{"files_checked":%d,"links_checked":%d,"errors":[' "$FILES_CHECKED" "$LINKS_CHECKED"
+  if [ "${#ERRORS[@]}" -gt 0 ]; then
+    for i in "${!ERRORS[@]}"; do
+      [ "$i" -gt 0 ] && printf ','
+      printf '"%s"' "${ERRORS[$i]//\"/\\\"}"
+    done
+  fi
+  printf ']}\n'
+elif [ "$QUIET" -eq 0 ]; then
+  echo "validate-internal-links: $FILES_CHECKED files, $LINKS_CHECKED links"
+  if [ "${#ERRORS[@]}" -eq 0 ]; then
+    echo "  all internal links resolve ✓"
+  else
+    echo "  ${#ERRORS[@]} broken link(s):"
+    for err in "${ERRORS[@]}"; do
+      echo "    $err"
+    done
+  fi
+else
+  if [ "${#ERRORS[@]}" -gt 0 ]; then
+    for err in "${ERRORS[@]}"; do
+      echo "$err"
+    done
+  fi
+fi
+
+[ "${#ERRORS[@]}" -eq 0 ] && exit 0 || exit 1

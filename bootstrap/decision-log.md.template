@@ -9,11 +9,11 @@
 > **Discipline doc:** `.claude/preferences.md` "Decision log
 > discipline" — read it before writing entries.
 > **Owning skill:** `/preferences` (read + prune); skills with
-> known forks append entries directly per the format spec.
+> known forks append entries via `bin/preferences-check log <id>
+> <answer>`.
 > **Auto-managed.** Do not hand-edit. To clear a fork's tally
-> use `/preferences clear-log <id>`. To capture a tally as a
-> preference, accept the auto-offer or invoke
-> `/preferences set <id> <value>`.
+> use `/preferences clear-log <id>` (or
+> `bin/preferences-check clear-log <id>` directly).
 
 The format below is regenerated when a known-fork answer is
 appended. Aggregate fields recompute from the History list on each
@@ -27,20 +27,20 @@ write.
   One section per fork that has been asked at least once and has
   not been captured as a preference. Sorted alphabetically by ID.
 
-  ## <preference-id>
+  ### <preference-id>
 
   - **Tally:** yes <N> / no <N> (streak: <N> <value>)
   - **Last asked:** <YYYY-MM-DD>
-  - **Last offer:** never  *(or "<YYYY-MM-DD> declined (cooldown: N decisions remaining)" or "<YYYY-MM-DD> declined (cooldown expired)" or "<YYYY-MM-DD> accepted — see preferences.md")*
+  - **Last offer:** never  *(or "<YYYY-MM-DD> declined (cooldown: N decisions remaining)" or "<YYYY-MM-DD> declined (cooldown expired)")*
   - **Tier:** <low-risk | high-risk>
+  - **History:**
+    - <YYYY-MM-DD> <handle>: <value> [— <context>]
+    - <YYYY-MM-DD> <handle>: <value>
+    - ...
 
-  ### History
-
-  - <YYYY-MM-DD> <handle>: <value> [— <context>]
-  - ...
-
-  History is prepend (newest first). Aggregate fields recompute on
-  each write.
+  History entries are prepend (newest first), indented two spaces
+  under the **History:** field. Aggregate fields recompute on
+  every write.
 -->
 
 *(no decisions logged yet — this file populates as skills ask
@@ -56,15 +56,13 @@ preference-eligible questions and the user answers)*
   preserved here for audit even though the active tally is no
   longer maintained.
 
-  ## <preference-id> *(captured <YYYY-MM-DD>)*
+  ### <preference-id> *(captured <YYYY-MM-DD>)*
 
   - **Final tally before capture:** yes <N> / no <N>
   - **Captured as preference:** see `state/preferences.md` entry
   - **Path:** auto-offer-accepted | explicit-set
-
-  ### History (frozen at capture)
-
-  - <YYYY-MM-DD> ...
+  - **History (frozen at capture):**
+    - <YYYY-MM-DD> ...
 -->
 
 *(no captures yet)*

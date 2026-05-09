@@ -55,6 +55,28 @@ log discipline" for the recipe each asking skill follows.
 
 ---
 
+## Implementation
+
+This skill is a thin wrapper around **`bin/preferences-check`** (a
+shell script in this orchestrator instance at `bin/preferences-check`).
+The script implements the mechanical operations — resolve, log,
+capture, revoke, clear-log — and returns JSON the skill consumes.
+**Use the script** for any file write; do not hand-write to
+`state/preferences.md` or `state/decision-log.md` from this skill.
+
+Skill responsibilities:
+- Disambiguate fork-id from natural-language input.
+- Confirm with the user (especially for high-risk capture and
+  for revoke).
+- Display the script's JSON output in human-readable form.
+
+Script responsibilities:
+- Parse + write the markdown files.
+- Recompute aggregates (tally, streak, last-asked, last-offer,
+  cooldown).
+- Look up tier from the registry in `.claude/preferences.md`.
+- Decide `should_offer` per the threshold rules.
+
 ## Files
 
 Two files this skill reads, both per-instance state:

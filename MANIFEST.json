@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -57,6 +57,36 @@
         "to": "bin/refresh",
         "policy": "file-replace-executable",
         "note": "Refresh script — fetches origin for every cloned sub-repo, writes state/last-fetch.json with ahead/behind/dirty per repo. Driven by /refresh skill; user-runnable directly. Synced from kit."
+      },
+      {
+        "from": "bin/validate-internal-links",
+        "to": "bin/validate-internal-links",
+        "policy": "file-replace-executable",
+        "note": "Walks markdown under kit/, bootstrap/, decisions/, features/, migrations/, proposals/, etc. and verifies every internal [text](path) link resolves. Catches stale-reference bugs at commit time. Run via pre-commit hook or CI. In kit-checkout mode it produces known false positives for instance-content references (top-level *.md from bootstrap, .claude/* synced files); accurate in instances."
+      },
+      {
+        "from": "bin/validate-task-spec",
+        "to": "bin/validate-task-spec",
+        "policy": "file-replace-executable",
+        "note": "Validates a task or proposal markdown file against governance/task-spec-shape.md: required frontmatter delimiters, all 9 required body sections, AC has checkboxes, References has bullets. Used by /promote (refuses to promote invalid spec) and /propose new (warns at draft time). Exit 0 valid, 1 invalid, 2 usage error."
+      },
+      {
+        "from": "bin/render-active-notice",
+        "to": "bin/render-active-notice",
+        "policy": "file-replace-executable",
+        "note": "Renders <sub>/.claude/active-<concern>.md content from the kit template + filtered source artifacts. Concerns: features (filters features/*.md by affects+status), migrations (filters migrations/active/*.md by affects). Wholesale regeneration; outputs nothing if no open items affect the repo (caller deletes the file). Used by /feature and /migration."
+      },
+      {
+        "from": "bin/open-orch-pr",
+        "to": "bin/open-orch-pr",
+        "policy": "file-replace-executable",
+        "note": "Standardized chore/orch-* PR flow for sub-repos: pull main, branch, expects caller to have written changes, commits with orch: prefix, pushes, opens gh PR. Used by /register (init-shared), /migration (notice updates), /promote (task drops), and any future skill that opens orchestrator-authored PRs."
+      },
+      {
+        "from": "bin/preferences-check",
+        "to": "bin/preferences-check",
+        "policy": "file-replace-executable",
+        "note": "Implements the 5-step recipe at a known fork from preferences.md. Subcommands: resolve (look up active preference), log (append decision-log entry, recompute aggregate, return offer signal), capture (write preference, archive log), revoke (move to revoked), clear-log (reset fork tally). Preferences-aware skills shell out to this instead of describing the algorithm in markdown."
       },
       {
         "from": "kit/skill-architecture.md",

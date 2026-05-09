@@ -324,28 +324,28 @@ offer capture again if a new streak forms.
 
 ### What's tracked per fork
 
-A `## <preference-id>` section per fork that's been asked at least
-once. Section header carries the aggregate; entries below it are
-the rolling history.
+A `### <preference-id>` section (h3, nested under `## Active` h2)
+per fork that's been asked at least once. Section header carries
+the aggregate; entries are listed in a `**History:**` field with
+indented bullets.
 
 ```markdown
-## auto-scaffold-shared-on-register
+### auto-scaffold-shared-on-register
 
 - **Tally:** yes 5 / no 0 (streak: 5 yes)
 - **Last asked:** 2026-05-09
 - **Last offer:** never (or `<YYYY-MM-DD> declined`, with cooldown counter)
 - **Tier:** low-risk
-
-### History
-
-- 2026-05-09 chazz: yes — sub-repo: ios
-- 2026-05-08 chazz: yes — sub-repo: web
-- 2026-05-07 chazz: yes — sub-repo: api
-- 2026-05-05 chazz: yes — sub-repo: devops
-- 2026-05-03 chazz: yes — sub-repo: payments
+- **History:**
+  - 2026-05-09 chazz: yes — sub-repo: ios
+  - 2026-05-08 chazz: yes — sub-repo: web
+  - 2026-05-07 chazz: yes — sub-repo: api
+  - 2026-05-05 chazz: yes — sub-repo: devops
+  - 2026-05-03 chazz: yes — sub-repo: payments
 ```
 
-History is **prepend** (newest first). Aggregate header is
+History entries are **prepend** (newest first), indented two
+spaces under the `- **History:**` field. Aggregate fields are
 **recomputed on each write**:
 
 - `yes` count = number of yes entries in History
@@ -360,12 +360,21 @@ History is **prepend** (newest first). Aggregate header is
 
 ### How a skill writes a log entry
 
-1. Read `state/decision-log.md`. Locate or create the `## <id>`
-   section.
-2. Prepend a new line to the History list:
+**Recommended:** invoke `bin/preferences-check log <fork-id>
+<answer> [--context "<text>"]` — the script handles the parsing,
+prepending, and aggregate recomputation. Returns JSON the skill
+uses to drive the offer prompt.
+
+**By hand** (without the script):
+
+1. Read `state/decision-log.md`. Locate or create the
+   `### <id>` section (h3) under `## Active` (h2).
+2. Prepend an indented entry under the `- **History:**` field:
 
    ```
-   - <YYYY-MM-DD> <handle>: <value> [— <context>]
+   - **History:**
+     - <YYYY-MM-DD> <handle>: <value> [— <context>]
+     - ... (older entries)
    ```
 
    Context is optional; useful when the answer applies to a
@@ -373,8 +382,8 @@ History is **prepend** (newest first). Aggregate header is
 3. Recompute the aggregate header (yes/no/streak/last asked).
 4. Write back.
 
-The format is plain markdown. Skills without a shared helper still
-produce consistent files as long as they follow the spec exactly.
+The format is plain markdown. The script is the canonical writer;
+hand-writing it requires care to keep the format consistent.
 
 ### Cooldown bookkeeping
 

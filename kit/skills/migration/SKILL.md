@@ -121,13 +121,14 @@ The same pattern will apply to future concerns
      Notice writes require a local clone. If `repos/<name>/` doesn't
      exist, surface that to the user in step 6 — they can run
      `bin/setup` to clone it or skip the notice for that sub-repo.
-   - Render `repos/<name>/.claude/active-migrations.md` content
-     **wholesale** from `migrations/active/`, using the template at
-     `.claude/templates/sub-repo-notices/migrations.md.template` —
-     see "Notice file format" above. The new migration is now in
-     `migrations/active/`, so it lands in the rendered output
-     naturally; older still-open migrations affecting this repo
-     also stay in.
+   - **Implementation:** invoke
+     ```sh
+     bin/render-active-notice migrations <repo>
+     ```
+     The script reads `migrations/active/*.md`, filters by
+     `affects:`, renders via the template per "Notice file format"
+     above, and writes to stdout. Empty output means no open
+     migrations touch this repo (delete the notice file).
    - Don't write yet — show the rendered content as part of step 6.
 
 6. **Show everything.** All drafted files (migration, contract updates,

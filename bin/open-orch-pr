@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+#
+# bin/open-orch-pr — open a chore/orch-* PR in a registered sub-repo.
+#
+# Output: Pattern 23 — Activity timeline
+#         (sectional `→` arrows for stages: pull → branch → write → push → PR;
+#          see .claude/output-catalogue.md)
+#
+# Usage:
+#   bin/open-orch-pr --repo <name> --branch <slug> --title <title> \
+#                    --body-file <path-to-body-md> [--no-push]
+#
+# Args:
+#   --repo NAME          Sub-repo name (must be registered in state/manifest.md)
+#   --branch SLUG        Branch slug (becomes chore/orch-<slug>)
+#   --title TITLE        PR title (will be prefixed with "orch: " if absent)
+#   --body-file PATH     File containing the PR body markdown
+#   --no-push            Stop before pushing; useful for dry-run review
+#   --no-pr              Push but don't open the PR (caller does it)
+#
+# Behavior:
+#   1. Verifies repos/<name>/ exists and is a clean working tree.
+#   2. git -C repos/<name> checkout <default-branch> && pull
+#   3. git -C repos/<name> checkout -b chore/orch-<slug>
+#   4. Caller is expected to have already written the changes into
+#      repos/<name>/ before invoking this script. The script:
+#        - git add -A (caller staged changes via direct write)
+#        - git commit -m "orch: <title>"
+#   5. Push with -u flag (unless --no-push).
+#   6. gh pr create with --title and --body-file (unless --no-pr).
+#   7. Prints the PR URL on success.
+#
+# Standardizes the PR-opening flow used by /register (init-shared),
+# /migration (notice updates), /promote (task drops), and any future
+# skill that opens an orchestrator-authored PR in a sub-repo.
+
+set -euo pipefail
+
+REPO=""
+BRANCH=""
+TITLE=""
+BODY_FILE=""
+NO_PUSH=0
+NO_PR=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo) REPO="$2"; shift 2 ;;
+    --branch) BRANCH="$2"; shift 2 ;;
+    --title) TITLE="$2"; shift 2 ;;
+    --body-file) BODY_FILE="$2"; shift 2 ;;
+    --no-push) NO_PUSH=1; shift ;;
+    --no-pr) NO_PR=1; shift ;;
+    -h|--help)
+      grep '^#' "$0" | head -35 | sed 's/^# \?//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+for required in REPO BRANCH TITLE BODY_FILE; do
+  if [ -z "${!required}" ]; then
+    echo "missing required arg: --${required,,}" >&2
+    exit 2
+  fi
+done
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_DIR="$ORCH_ROOT/repos/$REPO"
+MANIFEST="$ORCH_ROOT/state/manifest.md"
+
+# Verify
+if [ ! -d "$REPO_DIR/.git" ]; then
+  echo "no git repo at $REPO_DIR" >&2
+  echo "  was the sub-repo registered? Run bin/setup if cloning is needed." >&2
+  exit 1
+fi
+if [ ! -f "$BODY_FILE" ]; then
+  echo "body file not found: $BODY_FILE" >&2
+  exit 2
+fi
+
+# Title normalization — ensure "orch: " prefix
+case "$TITLE" in
+  orch:*) ;;
+  *) TITLE="orch: $TITLE" ;;
+esac
+
+# Branch normalization — ensure "chore/orch-" prefix
+case "$BRANCH" in
+  chore/orch-*) ;;
+  *) BRANCH="chore/orch-$BRANCH" ;;
+esac
+
+# Default branch detection
+DEFAULT_BRANCH="$(git -C "$REPO_DIR" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo main)"
+
+echo "→ Opening orch PR in $REPO"
+echo "  branch: $BRANCH"
+echo "  title:  $TITLE"
+echo "  body:   $BODY_FILE"
+echo
+
+# 1. Pull latest
+echo "  → checkout $DEFAULT_BRANCH + pull"
+git -C "$REPO_DIR" checkout "$DEFAULT_BRANCH" >/dev/null 2>&1
+git -C "$REPO_DIR" pull --ff-only >/dev/null
+
+# 2. Branch
+echo "  → checkout -b $BRANCH"
+if git -C "$REPO_DIR" rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
+  echo "    branch exists already; checking out and resetting to $DEFAULT_BRANCH"
+  git -C "$REPO_DIR" checkout "$BRANCH" >/dev/null
+  git -C "$REPO_DIR" reset --hard "$DEFAULT_BRANCH" >/dev/null
+else
+  git -C "$REPO_DIR" checkout -b "$BRANCH" >/dev/null
+fi
+
+# 3. Verify caller has written changes
+if git -C "$REPO_DIR" diff --quiet && git -C "$REPO_DIR" diff --staged --quiet && [ -z "$(git -C "$REPO_DIR" status --porcelain)" ]; then
+  echo "    no changes detected in working tree" >&2
+  echo "    caller must write files into $REPO_DIR/ before invoking this script" >&2
+  exit 1
+fi
+
+# 4. Stage + commit
+echo "  → stage + commit"
+git -C "$REPO_DIR" add -A
+git -C "$REPO_DIR" commit -m "$TITLE" -m "$(cat "$BODY_FILE")" >/dev/null
+
+# 5. Push
+if [ "$NO_PUSH" -eq 1 ]; then
+  echo
+  echo "  --no-push set; stopping. To push manually:"
+  echo "    git -C $REPO_DIR push -u origin $BRANCH"
+  exit 0
+fi
+
+echo "  → push -u origin $BRANCH"
+git -C "$REPO_DIR" push -u origin "$BRANCH" 2>&1 | tail -3
+
+# 6. PR
+if [ "$NO_PR" -eq 1 ]; then
+  echo
+  echo "  --no-pr set; stopping. To open the PR manually:"
+  echo "    gh pr create -R <remote> --title \"$TITLE\" --body-file \"$BODY_FILE\""
+  exit 0
+fi
+
+echo "  → gh pr create"
+PR_URL=$(gh pr create --repo-from-branch "$BRANCH" --title "$TITLE" --body-file "$BODY_FILE" 2>&1 | grep -oE 'https://github.com/[^[:space:]]+/pull/[0-9]+' | head -1 || true)
+
+if [ -z "$PR_URL" ]; then
+  # Fallback: try without --repo-from-branch (older gh versions)
+  PR_URL=$(cd "$REPO_DIR" && gh pr create --title "$TITLE" --body-file "$BODY_FILE" 2>&1 | grep -oE 'https://github.com/[^[:space:]]+/pull/[0-9]+' | head -1 || true)
+fi
+
+echo
+if [ -n "$PR_URL" ]; then
+  echo "✓ PR opened: $PR_URL"
+else
+  echo "✗ failed to capture PR URL — check gh output above"
+  exit 1
+fi

@@ -159,11 +159,15 @@ For each repo in the feature's `affects:` list:
   Notice writes require a local clone. If `repos/<name>/` doesn't
   exist, surface in step 5 — user can run `bin/setup` to clone or
   skip the notice for that sub-repo.
-- Render the file content **wholesale** from `features/*.md` using
-  the template per "Notice file format" above. The new feature is
-  now drafted into `features/`, so it lands in the rendered output
-  naturally; older still-open features affecting this repo also
-  stay in.
+- **Implementation:** invoke
+  ```sh
+  bin/render-active-notice features <repo>
+  ```
+  The script reads `features/*.md`, filters by `affects:` +
+  `status:` ∈ {planning, in-progress}, renders via the template
+  per "Notice file format" above, and writes to stdout. Empty
+  output means no open features touch this repo (delete the
+  notice file rather than write empty).
 - Don't write yet — show the rendered content as part of step 5.
 
 If a feature is being authored that does NOT yet exist in

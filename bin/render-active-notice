@@ -1,0 +1,250 @@
+#!/usr/bin/env bash
+#
+# bin/render-active-notice — render an auto-managed sub-repo notice file.
+#
+# Output: the rendered active-<concern>.md content (to stdout) or
+#         empty when there's nothing open. Pattern from the template
+#         used (kit/templates/sub-repo-notices/<concern>.md.template).
+#
+# Usage:
+#   bin/render-active-notice <concern> <sub-repo>
+#   bin/render-active-notice features api > repos/api/.claude/active-features.md
+#   bin/render-active-notice migrations api
+#
+# Args:
+#   <concern>   "features" or "migrations" (must match a template)
+#   <sub-repo>  Sub-repo name from state/manifest.md
+#
+# Behavior:
+#   - Reads the template at
+#     .claude/templates/sub-repo-notices/<concern>.md.template (in an
+#     instance) or kit/templates/sub-repo-notices/<concern>.md.template
+#     (in the kit checkout).
+#   - For features: reads features/*.md, filters frontmatter
+#     `affects:` includes <sub-repo> AND `status:` ∈ {planning, in-progress}.
+#   - For migrations: reads migrations/active/*.md, filters frontmatter
+#     `affects:` includes <sub-repo>.
+#   - Renders entries per the template's structure.
+#   - Substitutes placeholders: {{ORCHESTRATOR_PATH}}, {{REPO_NAME}},
+#     {{TIMESTAMP}}, {{SKILL}}, {{FEATURE_ENTRIES}} or {{MIGRATION_ENTRIES}}.
+#   - If no open items affect this repo, exits 0 with no output (caller
+#     should delete the file rather than write empty content).
+#
+# Exit codes:
+#   0 — rendered (output on stdout) OR no open items (no output)
+#   1 — error (template missing, sub-repo not registered, etc.)
+#   2 — usage error
+
+set -euo pipefail
+
+CONCERN="${1:-}"
+SUB_REPO="${2:-}"
+
+if [ -z "$CONCERN" ] || [ -z "$SUB_REPO" ]; then
+  echo "usage: bin/render-active-notice <concern> <sub-repo>" >&2
+  exit 2
+fi
+
+case "$CONCERN" in
+  features|migrations) ;;
+  *)
+    echo "unknown concern: $CONCERN (supported: features, migrations)" >&2
+    exit 2
+    ;;
+esac
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Template path (try .claude/templates/ first for instances, then kit/templates/ for kit checkout)
+TEMPLATE=""
+for path in \
+  "$ORCH_ROOT/.claude/templates/sub-repo-notices/$CONCERN.md.template" \
+  "$ORCH_ROOT/kit/templates/sub-repo-notices/$CONCERN.md.template"
+do
+  if [ -f "$path" ]; then
+    TEMPLATE="$path"
+    break
+  fi
+done
+
+if [ -z "$TEMPLATE" ]; then
+  echo "no template found for concern '$CONCERN'" >&2
+  exit 1
+fi
+
+# Source directory for items to render
+case "$CONCERN" in
+  features) SOURCE_DIR="$ORCH_ROOT/features" ;;
+  migrations) SOURCE_DIR="$ORCH_ROOT/migrations/active" ;;
+esac
+
+if [ ! -d "$SOURCE_DIR" ]; then
+  # No source dir → no entries
+  exit 0
+fi
+
+# Helper: extract a frontmatter field value (handles single-line scalar and inline array)
+# Usage: extract_fm_field <file> <field-name>
+extract_fm_field() {
+  local file="$1" field="$2"
+  awk -v field="$field" '
+    /^---$/ { count++; if (count == 2) exit; next }
+    count == 1 && $1 == field":" {
+      sub(/^[^:]+:[[:space:]]*/, "")
+      sub(/[[:space:]]+$/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
+# Helper: check whether an `affects: [api, ios]` line includes <sub-repo>
+# Usage: affects_includes <file> <sub-repo>
+affects_includes() {
+  local file="$1" repo="$2"
+  local line
+  line="$(extract_fm_field "$file" "affects")"
+  [ -z "$line" ] && return 1
+  # Strip brackets, split on commas, trim, compare
+  line="${line#\[}"
+  line="${line%\]}"
+  local IFS=','
+  for item in $line; do
+    item="${item// /}"
+    item="${item//\"/}"
+    item="${item//\'/}"
+    if [ "$item" = "$repo" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Helper: extract first paragraph of a body section
+# Usage: extract_section_first_para <file> <heading>
+extract_section_first_para() {
+  local file="$1" heading="$2"
+  awk -v heading="$heading" '
+    $0 == heading { flag=1; next }
+    /^## / && flag { exit }
+    flag {
+      if (NF == 0) {
+        if (out != "") exit
+      } else if (out == "") {
+        out = $0
+      } else {
+        out = out " " $0
+      }
+    }
+    END { print out }
+  ' "$file"
+}
+
+# Build entries list
+ENTRIES=""
+
+# Sort source files newest-first by ID date prefix (filename starts with YYYY-MM-DD)
+SORTED_FILES=$(find "$SOURCE_DIR" -maxdepth 1 -type f -name "*.md" 2>/dev/null \
+  | grep -v '_template' \
+  | grep -v 'README' \
+  | sort -r || true)
+
+for item_file in $SORTED_FILES; do
+  [ ! -f "$item_file" ] && continue
+
+  # Filter by affects
+  if ! affects_includes "$item_file" "$SUB_REPO"; then
+    continue
+  fi
+
+  # Filter by status (concern-specific)
+  status="$(extract_fm_field "$item_file" "status")"
+  case "$CONCERN" in
+    features)
+      case "$status" in
+        planning|in-progress) ;;
+        *) continue ;;
+      esac
+      ;;
+    migrations)
+      case "$status" in
+        in-progress|validating) ;;
+        *) continue ;;
+      esac
+      ;;
+  esac
+
+  item_id="$(basename "$item_file" .md)"
+
+  # Render entry per concern
+  case "$CONCERN" in
+    features)
+      # Outcome: first sentence of body's "## What" section
+      outcome="$(extract_section_first_para "$item_file" "## What")"
+      # Trim to first sentence
+      outcome="${outcome%%.*}."
+      # Related migrations (frontmatter)
+      related="$(extract_fm_field "$item_file" "related_migrations")"
+      related="${related#\[}"
+      related="${related%\]}"
+      related="$(echo "$related" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+      [ -z "$related" ] && related="none"
+
+      entry="- **$item_id** — $outcome
+  - **Status:** $status
+  - **Feature file:** [\`$item_id.md\`]($ORCH_ROOT/features/$item_id.md)
+  - **Related migrations:** $related"
+      ;;
+    migrations)
+      # Summary: first sentence of body
+      summary="$(awk '/^---$/ { c++; if (c == 2) {flag=1; next} } flag && /^## / { exit } flag && NF { print; exit }' "$item_file")"
+      summary="${summary%%.*}."
+      [ -z "$summary" ] || [ "$summary" = "." ] && summary="(see migration file for details)"
+
+      entry="- **$item_id** — $summary
+  - **Status:** $status
+  - **This repo's part:** ⚪ not started
+  - **Migration file:** [\`$item_id.md\`]($ORCH_ROOT/migrations/active/$item_id.md)"
+      ;;
+  esac
+
+  if [ -z "$ENTRIES" ]; then
+    ENTRIES="$entry"
+  else
+    ENTRIES="$ENTRIES
+
+$entry"
+  fi
+done
+
+# If no entries, exit 0 with no output (caller handles file deletion)
+if [ -z "$ENTRIES" ]; then
+  exit 0
+fi
+
+# Render template with substitutions
+TIMESTAMP="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+case "$CONCERN" in
+  features) SKILL="/feature"; ENTRIES_PLACEHOLDER="FEATURE_ENTRIES" ;;
+  migrations) SKILL="/migration"; ENTRIES_PLACEHOLDER="MIGRATION_ENTRIES" ;;
+esac
+
+# Substitute. Use awk for safety with special characters in entries.
+awk -v orch_path="$ORCH_ROOT" \
+    -v repo_name="$SUB_REPO" \
+    -v ts="$TIMESTAMP" \
+    -v skill="$SKILL" \
+    -v entries="$ENTRIES" \
+    -v entries_ph="$ENTRIES_PLACEHOLDER" '
+  {
+    gsub("{{ORCHESTRATOR_PATH}}", orch_path)
+    gsub("{{REPO_NAME}}", repo_name)
+    gsub("{{TIMESTAMP}}", ts)
+    gsub("{{SKILL}}", skill)
+    if ($0 ~ "{{"entries_ph"}}") {
+      print entries
+    } else {
+      print
+    }
+  }
+' "$TEMPLATE"

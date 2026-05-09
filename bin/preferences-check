@@ -1,0 +1,591 @@
+#!/usr/bin/env bash
+#
+# bin/preferences-check — read/write the preferences + decision-log files
+#                         per the 5-step recipe in .claude/preferences.md.
+#
+# Output: JSON on stdout (one line per call). Pattern from the calling
+#         skill (this script is mechanical; output format is for skill
+#         consumption).
+#
+# Usage:
+#   bin/preferences-check resolve <fork-id>
+#       → JSON: {found, decision, tier, set, evidence, disclosure_message}
+#   bin/preferences-check log <fork-id> <answer> [--context "<text>"]
+#       → JSON: {logged, streak, tally_yes, tally_no, should_offer, offer_prompt}
+#   bin/preferences-check capture <fork-id> <value> --evidence "<text>" \
+#                                 [--source explicit|offer-accepted]
+#       → JSON: {captured, preference: {...}}
+#   bin/preferences-check revoke <fork-id> [--reason "<text>"]
+#       → JSON: {revoked, was: {...}}
+#   bin/preferences-check clear-log <fork-id>
+#       → JSON: {cleared, fork_id}
+#
+# Behavior:
+#   This script implements the mechanical parts of the "Skill recipe at
+#   a known fork" from .claude/preferences.md. Skills shell out to it
+#   instead of describing the algorithm in markdown.
+#
+#   - resolve: read state/preferences.md, return the active entry for
+#     <fork-id> if any. Caller decides whether to apply silently
+#     (using disclosure_message on first apply per session).
+#   - log: append a History entry to state/decision-log.md for
+#     <fork-id>; recompute aggregate (tally, streak, last_asked);
+#     check whether streak threshold (3) and tier (low-risk) plus
+#     no-active-cooldown trigger an offer.
+#   - capture: write the preference entry + archive the fork's log
+#     section. Used after Path 1 (explicit signal) or Path 2 (offer
+#     accepted).
+#   - revoke: move preference to Revoked; reset log section.
+#   - clear-log: reset the fork's tally to 0/0; cooldown cleared.
+#
+# Files:
+#   state/preferences.md      — captured preferences
+#   state/decision-log.md     — running tally
+#   .claude/preferences.md    — discipline doc + known-preferences registry
+#                               (this script uses the registry to look up
+#                                tier per fork-id)
+#
+# Exit codes:
+#   0 — success (JSON on stdout)
+#   1 — operation failed (error JSON on stdout)
+#   2 — usage error
+
+set -euo pipefail
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PREFS_FILE="$ORCH_ROOT/state/preferences.md"
+LOG_FILE="$ORCH_ROOT/state/decision-log.md"
+REGISTRY_FILE_CANDIDATES=(
+  "$ORCH_ROOT/.claude/preferences.md"
+  "$ORCH_ROOT/kit/preferences.md"
+)
+LOCAL_CONFIG="$ORCH_ROOT/.claude/local-config.json"
+THRESHOLD=3
+COOLDOWN_DECISIONS=5
+
+# --- helpers -----------------------------------------------------------------
+
+err_json() {
+  printf '{"error":"%s"}\n' "${1//\"/\\\"}"
+  exit 1
+}
+
+today() { date -u +'%Y-%m-%d'; }
+
+# Identity from local-config.json (fall back to "unknown")
+who_am_i() {
+  if [ -f "$LOCAL_CONFIG" ]; then
+    awk -F\" '/"me"/ { print $4; exit }' "$LOCAL_CONFIG" 2>/dev/null || echo "unknown"
+  else
+    echo "unknown"
+  fi
+}
+
+# Find the registry file (.claude/preferences.md preferred for instances,
+# kit/preferences.md for kit checkouts)
+find_registry() {
+  for f in "${REGISTRY_FILE_CANDIDATES[@]}"; do
+    [ -f "$f" ] && { echo "$f"; return; }
+  done
+  echo ""
+}
+
+# Look up tier for a fork-id from the registry's "Known preferences" table.
+# Returns: low-risk | high-risk | never-suppressible | unknown
+lookup_tier() {
+  local id="$1"
+  local registry
+  registry="$(find_registry)"
+  [ -z "$registry" ] && { echo "unknown"; return; }
+  awk -F'|' -v id="$id" '
+    $0 ~ /^\| `/ {
+      gsub(/`/, "", $2)
+      gsub(/[[:space:]]/, "", $2)
+      if ($2 == id) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3)
+        print $3
+        exit
+      }
+    }
+  ' "$registry" || echo "unknown"
+}
+
+# Extract a section by header from a markdown file.
+# Usage: extract_section <file> <header-regex> [<level>]
+# Outputs all lines from the matching header (exclusive) until next
+# header at the same or higher level (i.e., fewer or equal #s).
+extract_section() {
+  local file="$1" header="$2" level="${3:-3}"
+  local higher_re="^#{1,$level} "
+  awk -v hdr="$header" -v hre="$higher_re" '
+    $0 ~ hdr { flag=1; next }
+    flag && $0 ~ hre { exit }
+    flag { print }
+  ' "$file"
+}
+
+# Section presence test
+has_section() {
+  local file="$1" header="$2"
+  grep -qE "^${header}\$" "$file" 2>/dev/null
+}
+
+# Parse a preference entry from PREFS_FILE under "## Active preferences"
+# section, given the preference ID. Outputs key=value lines.
+parse_preference_active() {
+  local id="$1"
+  [ ! -f "$PREFS_FILE" ] && return 1
+  awk -v id="$id" '
+    /^## Active preferences/ { in_active=1; next }
+    /^## / { in_active=0 }
+    in_active && $0 ~ "^### " id "$" { found=1; next }
+    in_active && found && /^### / { exit }
+    in_active && found && /^## / { exit }
+    in_active && found { print }
+  ' "$PREFS_FILE" | grep -E '^- \*\*' || return 1
+}
+
+# --- subcommand: resolve -----------------------------------------------------
+
+cmd_resolve() {
+  local id="${1:-}"
+  [ -z "$id" ] && err_json "resolve: missing fork-id"
+
+  if [ ! -f "$PREFS_FILE" ]; then
+    printf '{"found":false,"id":"%s"}\n' "$id"
+    return 0
+  fi
+
+  local body
+  body="$(parse_preference_active "$id" || true)"
+  if [ -z "$body" ]; then
+    printf '{"found":false,"id":"%s"}\n' "$id"
+    return 0
+  fi
+
+  local decision tier set_full set_date set_by evidence
+  # Parse "- **Field:** value" — extract everything after the second `**`
+  decision="$(echo "$body" | awk -F'\\*\\*' '/Decision:/ { v=$3; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); print v; exit }')"
+  tier="$(echo "$body" | awk -F'\\*\\*' '/Tier:/ { v=$3; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); print v; exit }')"
+  set_full="$(echo "$body" | awk -F'\\*\\*' '/Set:/ { v=$3; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); print v; exit }')"
+  set_date="${set_full%% by *}"
+  set_by="${set_full##* by }"
+  evidence="$(echo "$body" | awk -F'\\*\\*' '/Evidence:/ { v=$3; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); sub(/^"/, "", v); sub(/"$/, "", v); print v; exit }')"
+
+  local disclosure="ℹ Per preference \`$id\` (set $set_date by $set_by: \"$evidence\"), applying automatically. Revoke: \`/preferences revoke $id\`"
+
+  printf '{"found":true,"id":"%s","decision":"%s","tier":"%s","set":"%s","set_by":"%s","evidence":"%s","disclosure_message":"%s"}\n' \
+    "$id" "$decision" "$tier" "$set_date" "$set_by" "${evidence//\"/\\\"}" "${disclosure//\"/\\\"}"
+}
+
+# --- subcommand: log ---------------------------------------------------------
+
+cmd_log() {
+  local id="${1:-}" answer="${2:-}"; shift 2 || true
+  local context=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --context) context="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  [ -z "$id" ] || [ -z "$answer" ] && err_json "log: usage: log <fork-id> <answer> [--context]"
+
+  if [ ! -f "$LOG_FILE" ]; then
+    err_json "log: $LOG_FILE not found (run bin/init?)"
+  fi
+
+  local handle today_date tier
+  handle="$(who_am_i)"
+  today_date="$(today)"
+  tier="$(lookup_tier "$id")"
+
+  # Build the new history entry
+  local entry="- $today_date $handle: $answer"
+  [ -n "$context" ] && entry="$entry — $context"
+
+  local tmp; tmp="$(mktemp)"
+
+  if has_section "$LOG_FILE" "### $id"; then
+    # Update existing section: prepend entry to History list, recompute aggregate
+    awk -v id="$id" -v new_entry="$entry" -v today="$today_date" -v tier="$tier" '
+      BEGIN { in_section=0; printed_entry=0 }
+      $0 == "### " id { in_section=1; print; next }
+      in_section && /^### / { in_section=0; print; next }
+      in_section && /^## / { in_section=0; print; next }
+      in_section {
+        # Recompute aggregate header lines
+        if ($0 ~ /^- \*\*Tally:\*\*/ || $0 ~ /^- \*\*Last asked:\*\*/) {
+          # Skip; we will write fresh aggregate after the heading on a
+          # post-processing pass. For now, replace with placeholder.
+          next
+        }
+        if ($0 ~ /^- \*\*Last offer:\*\*/ || $0 ~ /^- \*\*Tier:\*\*/) {
+          next
+        }
+        if ($0 ~ /^- \*\*History:\*\*/ && !printed_entry) {
+          print "- **History:**"
+          print "  " new_entry
+          printed_entry=1
+          next
+        }
+        if (printed_entry && /^  - /) {
+          print
+          next
+        }
+        if (printed_entry && /^[^ ]/) {
+          # End of history block in this section
+          printed_entry=0
+        }
+        print
+      }
+      !in_section { print }
+    ' "$LOG_FILE" > "$tmp"
+
+    # Now compute aggregate from the file we just wrote (read history list)
+    local yes_count no_count streak streak_value last_offer
+    yes_count=0
+    no_count=0
+    streak=0
+    streak_value=""
+
+    # Read fork section from tmp
+    local section_body
+    section_body="$(extract_section "$tmp" "^### $id\$" 3 || true)"
+    while IFS= read -r line; do
+      case "$line" in
+        "  - "*)
+          # History entry; format: "  - YYYY-MM-DD handle: value [— context]"
+          # Extract the value (between ': ' and ' —' or end)
+          local rest="${line#*: }"
+          local val="${rest%% — *}"
+          val="${val%%[[:space:]]}"
+          if [ "$val" = "yes" ]; then
+            yes_count=$((yes_count + 1))
+          elif [ "$val" = "no" ]; then
+            no_count=$((no_count + 1))
+          fi
+          # Streak: track the run of consecutive same-answer from top
+          if [ -z "$streak_value" ]; then
+            streak_value="$val"
+            streak=1
+          elif [ "$val" = "$streak_value" ]; then
+            streak=$((streak + 1))
+          else
+            # streak broken; lock it
+            streak_value="${streak_value}_LOCKED"
+          fi
+          ;;
+      esac
+    done <<< "$section_body"
+
+    # If streak_value got locked, strip the suffix
+    streak_value="${streak_value%_LOCKED}"
+
+    # Carry-forward the existing Last offer field if present (preserve cooldown state)
+    last_offer="$(awk -v id="$id" '
+      $0 == "### " id { f=1; next }
+      f && /^### / { exit }
+      f && /^## / { exit }
+      f && /^- \*\*Last offer:\*\*/ {
+        sub(/^- \*\*Last offer:\*\* /, "")
+        print
+        exit
+      }
+    ' "$LOG_FILE")"
+    [ -z "$last_offer" ] && last_offer="never"
+
+    # Decrement cooldown counter if present
+    if echo "$last_offer" | grep -qE 'cooldown: [0-9]+ decisions remaining'; then
+      local cooldown_n
+      cooldown_n="$(echo "$last_offer" | sed -E 's/.*cooldown: ([0-9]+) decisions.*/\1/')"
+      cooldown_n=$((cooldown_n - 1))
+      if [ "$cooldown_n" -le 0 ]; then
+        last_offer="$(echo "$last_offer" | sed -E 's/cooldown: [0-9]+ decisions remaining/cooldown expired/')"
+      else
+        last_offer="$(echo "$last_offer" | sed -E "s/cooldown: [0-9]+ decisions remaining/cooldown: $cooldown_n decisions remaining/")"
+      fi
+    fi
+
+    # Inject the recomputed aggregate after the section header
+    local tmp2; tmp2="$(mktemp)"
+    awk -v id="$id" \
+        -v yes_count="$yes_count" \
+        -v no_count="$no_count" \
+        -v streak="$streak" \
+        -v streak_value="$streak_value" \
+        -v today="$today_date" \
+        -v last_offer="$last_offer" \
+        -v tier="$tier" '
+      $0 == "### " id {
+        print
+        print "- **Tally:** yes " yes_count " / no " no_count " (streak: " streak " " streak_value ")"
+        print "- **Last asked:** " today
+        print "- **Last offer:** " last_offer
+        print "- **Tier:** " tier
+        in_section=1
+        skip_aggregate=1
+        next
+      }
+      in_section && /^### / { in_section=0; skip_aggregate=0 }
+      in_section && /^## / { in_section=0; skip_aggregate=0 }
+      skip_aggregate && /^- \*\*(Tally|Last asked|Last offer|Tier):\*\*/ { next }
+      skip_aggregate && /^- \*\*History:\*\*/ { skip_aggregate=0; print; next }
+      skip_aggregate && NF == 0 { next }
+      { print }
+    ' "$tmp" > "$tmp2"
+    mv "$tmp2" "$LOG_FILE"
+    rm -f "$tmp"
+
+  else
+    # New section. Append to ## Active.
+    awk -v id="$id" -v handle="$handle" -v today="$today_date" -v answer="$answer" \
+        -v context="$context" -v tier="$tier" -v entry="$entry" '
+      /^## Active$/ { in_active=1; print; next }
+      in_active && /^---$/ {
+        # We are at the end of Active section. Inject new fork before this.
+        print ""
+        print "### " id
+        print ""
+        print "- **Tally:** yes " (answer == "yes" ? 1 : 0) " / no " (answer == "no" ? 1 : 0) " (streak: 1 " answer ")"
+        print "- **Last asked:** " today
+        print "- **Last offer:** never"
+        print "- **Tier:** " tier
+        print "- **History:**"
+        print "  " entry
+        print ""
+        in_active=0
+        print
+        next
+      }
+      { print }
+    ' "$LOG_FILE" > "$tmp"
+    mv "$tmp" "$LOG_FILE"
+
+    yes_count=$([ "$answer" = "yes" ] && echo 1 || echo 0)
+    no_count=$([ "$answer" = "no" ] && echo 1 || echo 0)
+    streak=1
+    streak_value="$answer"
+    last_offer="never"
+  fi
+
+  # Determine should_offer
+  local should_offer="false"
+  local offer_prompt=""
+  if [ "$tier" = "low-risk" ] && [ "$streak" -ge "$THRESHOLD" ]; then
+    if [ "$last_offer" = "never" ] || echo "$last_offer" | grep -q "cooldown expired"; then
+      should_offer="true"
+      offer_prompt="I've seen you answer \"$streak_value\" to this $streak times in a row. Want me to remember it as a preference and stop asking? [yes / no]"
+    fi
+  fi
+
+  printf '{"logged":true,"id":"%s","tally_yes":%d,"tally_no":%d,"streak":%d,"streak_value":"%s","tier":"%s","should_offer":%s,"offer_prompt":"%s"}\n' \
+    "$id" "$yes_count" "$no_count" "$streak" "$streak_value" "$tier" "$should_offer" "${offer_prompt//\"/\\\"}"
+}
+
+# --- subcommand: capture -----------------------------------------------------
+
+cmd_capture() {
+  local id="${1:-}" value="${2:-}"; shift 2 || true
+  local evidence="" source="explicit"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --evidence) evidence="$2"; shift 2 ;;
+      --source) source="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  [ -z "$id" ] || [ -z "$value" ] && err_json "capture: usage: capture <fork-id> <value> --evidence <text>"
+  [ -z "$evidence" ] && err_json "capture: --evidence is required"
+
+  local handle today_date tier
+  handle="$(who_am_i)"
+  today_date="$(today)"
+  tier="$(lookup_tier "$id")"
+
+  if [ "$tier" = "never-suppressible" ]; then
+    err_json "capture: refused — preference $id is tier never-suppressible"
+  fi
+
+  if [ ! -f "$PREFS_FILE" ]; then
+    err_json "capture: $PREFS_FILE not found"
+  fi
+
+  # Append entry to ## Active preferences (alphabetical insertion is a
+  # nice-to-have; for v1 we just append before the section's --- end).
+  local tmp; tmp="$(mktemp)"
+  awk -v id="$id" -v value="$value" -v tier="$tier" -v today="$today_date" \
+      -v handle="$handle" -v evidence="$evidence" '
+    /^## Active preferences/ { in_active=1; print; next }
+    in_active && /^---$/ {
+      print ""
+      print "### " id
+      print ""
+      print "- **Decision:** " value
+      print "- **Scope:** global"
+      print "- **Tier:** " tier
+      print "- **Set:** " today " by " handle
+      print "- **Evidence:** \"" evidence "\""
+      print "- **Revoke:** `/preferences revoke " id "`"
+      print ""
+      in_active=0
+      print
+      next
+    }
+    { print }
+  ' "$PREFS_FILE" > "$tmp"
+  mv "$tmp" "$PREFS_FILE"
+
+  # Archive the log section: move from ## Active to ## Captured (archive).
+  if [ -f "$LOG_FILE" ] && has_section "$LOG_FILE" "### $id"; then
+    # Extract the section
+    local section
+    section="$(awk -v id="$id" '
+      $0 == "### " id { f=1 }
+      f && /^### / && $0 != "### " id { f=0 }
+      f && /^## / { f=0 }
+      f { print }
+    ' "$LOG_FILE")"
+
+    # Remove from Active, append to Captured (archive) with markup
+    local tmp2; tmp2="$(mktemp)"
+    awk -v id="$id" -v section="$section" -v today="$today_date" '
+      $0 == "### " id { skip=1; next }
+      skip && /^### / && $0 != "### " id { skip=0 }
+      skip && /^## / { skip=0 }
+      skip { next }
+
+      /^## Captured \(archive\)/ { in_archive=1; print; next }
+      in_archive && /^---$/ {
+        print ""
+        gsub("^### " id "$", "### " id " *(captured " today ")*", section)
+        print section
+        print ""
+        in_archive=0
+        print
+        next
+      }
+      in_archive && /^\*\(no captures yet\)\*/ { next }
+      { print }
+    ' "$LOG_FILE" > "$tmp2"
+    mv "$tmp2" "$LOG_FILE"
+  fi
+
+  printf '{"captured":true,"id":"%s","decision":"%s","tier":"%s","source":"%s"}\n' \
+    "$id" "$value" "$tier" "$source"
+}
+
+# --- subcommand: revoke ------------------------------------------------------
+
+cmd_revoke() {
+  local id="${1:-}"; shift || true
+  local reason=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --reason) reason="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  [ -z "$id" ] && err_json "revoke: usage: revoke <fork-id> [--reason]"
+
+  if ! parse_preference_active "$id" >/dev/null 2>&1; then
+    err_json "revoke: no active preference '$id'"
+  fi
+
+  local handle today_date was_decision was_set
+  handle="$(who_am_i)"
+  today_date="$(today)"
+  was_decision="$(parse_preference_active "$id" | awk -F'\\*\\*' '/Decision:/ { print $3; exit }' | sed 's/^:[[:space:]]*//; s/[[:space:]]*$//')"
+  was_set="$(parse_preference_active "$id" | awk -F'\\*\\*' '/Set:/ { print $3; exit }' | sed 's/^:[[:space:]]*//; s/[[:space:]]*$//')"
+
+  local tmp; tmp="$(mktemp)"
+  awk -v id="$id" -v decision="$was_decision" -v set="$was_set" \
+      -v today="$today_date" -v handle="$handle" -v reason="$reason" '
+    /^## Active preferences/ { in_active=1; print; next }
+    in_active && $0 == "### " id { skip=1; next }
+    skip && /^### / && $0 != "### " id { skip=0 }
+    skip && /^## / { skip=0 }
+    skip { next }
+
+    /^## Revoked preferences/ { in_revoked=1; print; next }
+    in_revoked && /^---$/ {
+      print ""
+      print "### " id " *(revoked)*"
+      print ""
+      print "- **Was:** " decision " (set " set ")"
+      print "- **Revoked:** " today " by " handle
+      if (reason != "") print "- **Reason:** " reason
+      print ""
+      in_revoked=0
+      print
+      next
+    }
+    in_revoked && /^\*\(none\)\*/ { next }
+    { print }
+  ' "$PREFS_FILE" > "$tmp"
+  mv "$tmp" "$PREFS_FILE"
+
+  printf '{"revoked":true,"id":"%s","was_decision":"%s"}\n' "$id" "$was_decision"
+}
+
+# --- subcommand: clear-log ---------------------------------------------------
+
+cmd_clear_log() {
+  local id="${1:-}"
+  [ -z "$id" ] && err_json "clear-log: usage: clear-log <fork-id>"
+
+  if [ ! -f "$LOG_FILE" ] || ! has_section "$LOG_FILE" "### $id"; then
+    err_json "clear-log: no log entry for '$id'"
+  fi
+
+  local tmp; tmp="$(mktemp)"
+  local handle today_date tier
+  handle="$(who_am_i)"
+  today_date="$(today)"
+  tier="$(lookup_tier "$id")"
+
+  awk -v id="$id" -v today="$today_date" -v handle="$handle" -v tier="$tier" '
+    $0 == "### " id { in_section=1; print; next }
+    in_section && /^### / && $0 != "### " id { in_section=0 }
+    in_section && /^## / { in_section=0 }
+    in_section {
+      if (!reset_done) {
+        print ""
+        print "- **Tally:** yes 0 / no 0 (streak: 0)"
+        print "- **Last asked:** never since clear"
+        print "- **Last offer:** never"
+        print "- **Tier:** " tier
+        print "- **History:** *(cleared " today " by " handle ")*"
+        print ""
+        reset_done=1
+      }
+      next
+    }
+    { print }
+  ' "$LOG_FILE" > "$tmp"
+  mv "$tmp" "$LOG_FILE"
+
+  printf '{"cleared":true,"id":"%s"}\n' "$id"
+}
+
+# --- dispatch ----------------------------------------------------------------
+
+case "${1:-}" in
+  resolve) shift; cmd_resolve "$@" ;;
+  log) shift; cmd_log "$@" ;;
+  capture) shift; cmd_capture "$@" ;;
+  revoke) shift; cmd_revoke "$@" ;;
+  clear-log) shift; cmd_clear_log "$@" ;;
+  -h|--help|"")
+    grep '^#' "$0" | head -40 | sed 's/^# \?//'
+    exit 0
+    ;;
+  *)
+    echo "unknown subcommand: $1" >&2
+    echo "supported: resolve, log, capture, revoke, clear-log" >&2
+    exit 2
+    ;;
+esac
