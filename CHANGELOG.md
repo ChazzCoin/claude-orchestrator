@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.9.0 — 2026-05-09
+
+Two design shifts in this release: introduce the **scripted-skill
+architecture** (skills can be locked-down shell scripts with thin
+Claude wrappers, not all interpretive markdown contracts) and add the
+**output catalogue** (34 visual patterns every script picks from,
+never inventing custom shapes). Both shifts move toward
+predictability over interpretation — Claude is great at judgment,
+computers are better at deterministic behavior. The orchestrator
+benefits from picking the right tool per task.
+
+### Scripted-skill architecture
+
+`bin/refresh` becomes the first scripted-skill prototype. The flow is
+locked in shell: read manifest → fetch each cloned sub-repo →
+compute ahead/behind/dirty → write `state/last-fetch.json` → print
+summary. The `/refresh` skill drops from 160 lines to 47 — just "run
+the script, surface output, don't reinterpret."
+
+- `bin/refresh` (NEW, kit-synced, executable) — deterministic flow.
+  Python stdlib for JSON output (no jq dependency). Tested
+  end-to-end against rai-orchestrator's manifest.
+- `kit/skills/refresh/SKILL.md` — rewritten as thin wrapper.
+- `kit/skill-architecture.md` (NEW) — discipline doc covering:
+  - Two shapes (scripted / interpretive / mixed) with decision rule.
+  - Why scripting locks down behavior (lockdown, doc-by-code,
+    user-runnable).
+  - Configuration: scripts read fields from
+    `.claude/local-config.json` (Python stdlib parsing).
+  - Two layers: generic kit-synced (`bin/<name>`) vs templated
+    instance-owned (`bootstrap/bin/<name>.sh.template`).
+  - File-layout conventions, what NOT to script, migration path
+    for converting existing skills.
+
+### Output catalogue
+
+`kit/output-catalogue.md` (NEW, 1501 lines) — visual design
+catalogue with 34 terminal output patterns. Hero cards, live
+dashboards, roadmap timelines, sprint boards, deployment reports,
+severity audits, git branch overviews, activity timelines, alert
+variants, empty states, stats grids, multi-step wizards, command
+references, selection prompts, and more. Each pattern includes raw
+template, color cues (semantic names), and design rationale.
+
+Every orchestrator script picks a pattern from the catalogue based
+on what its output is for. New requirements:
+
+1. Declare the pattern in the script header comment.
+2. Reference the pattern in the SKILL.md (if it has one).
+3. Compose existing patterns; don't invent custom shapes.
+
+Existing scripts retrofitted with pattern declarations:
+
+- `bin/init` — Pattern 23 (Activity timeline) + Pattern 1
+  hero-style next-steps block.
+- `bin/setup` — Pattern 23 + summary block + one-time Pattern 34
+  identity prompt on first run.
+- `bin/refresh` — Pattern 17 (Git branch overview). Output rewritten:
+
+```
+  REFRESH  ·  2026-05-09 01:44 UTC
+
+   ●  api       main                  +0 -3      behind origin
+   ●  web       main                  +0 -0      current
+   ●  ios       feat/x                +2 -0      ahead origin · dirty
+   ○  devops    unfetched                        run bin/setup to clone
+   ✗  api       (error)                          ERROR: <message>
+
+   saved · state/last-fetch.json
+```
+
+  Glyphs: `●` cloned · `○` unfetched · `✗` error. Status text
+  disambiguates: current / ahead / behind / diverged · dirty.
+
+### Wiring
+
+- `MANIFEST.json` — sync entries for `bin/refresh`,
+  `kit/skill-architecture.md`, `kit/output-catalogue.md`.
+- `bin/init` — copies `bin/refresh` into instances; copies the two
+  new discipline docs to `.claude/`.
+- `kit/orchestrator-rules.md` — session-start references list adds
+  both new docs.
+
+### Going forward
+
+Every new script:
+
+1. Picks a pattern from `output-catalogue.md`.
+2. Declares the pattern in its header comment.
+3. References the pattern in its SKILL.md (if any).
+4. Composes existing patterns rather than inventing new shapes.
+
+When a new pattern is genuinely needed, propose it as an addition to
+`output-catalogue.md` via PR.
+
 ## 0.8.0 — 2026-05-08
 
 Two big shifts in this release:
