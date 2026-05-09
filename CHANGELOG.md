@@ -1,5 +1,224 @@
 # Changelog
 
+## 0.11.0 — 2026-05-09
+
+Six layered additions: phase/task discipline, durable two-way
+per-repo channel, `active-features.md` notice generalization,
+operating preferences with confidence-driven auto-capture,
+per-repo proposal staging, and full wiring so existing skills
+consume the new state. The orchestrator now has explicit
+contracts for *what tasks look like*, *how they get planned*,
+and *which user decisions to remember*. Each layer is additive;
+nothing in v0.10.0 breaks.
+
+### New disciplines in `kit/governance/`
+
+| File | Purpose |
+|---|---|
+| `phases-and-tasks.md` | Phase isolation by disjoint code regions, freeze lists, dependency DAG, exit criteria, conflict policy |
+| `task-spec-shape.md` | Required body sections every task spec must contain (User request, Why, Assumptions, Technical breakdown, AC, Out of scope, Contract impact, References, Definition of done) + frontmatter |
+| `dev-preflight.md` | 12-step checklist for any dev (human or sub-kit's claude) before writing code on a task |
+
+Manifest mirror: `kit/governance/` → `.claude/governance/` via
+`directory-mirror`.
+
+### New durable two-way channel `<sub>/.claude/shared/`
+
+Sibling discipline to `<sub>/.claude/active-<concern>.md`:
+**durable + bidirectional** vs **auto-managed + one-direction**.
+Templates at `kit/templates/sub-repo-shared/` for
+`architecture.md`, `inbox.md`, `notes.md`, `references.md`.
+Hand-edited or appended; never auto-regenerated.
+
+`/register` step 11 offers to scaffold via
+`chore/orch-init-shared` PR. The offer is a known fork registered
+as preference ID `auto-scaffold-shared-on-register`.
+
+### `active-features.md` — auto-managed notices generalize
+
+`/feature` now drops `<sub>/.claude/active-features.md` into each
+affected sub-repo's working tree, regenerated wholesale on each
+invocation, deleted when no open features touch the repo. Same
+discipline as `/migration`'s `active-migrations.md`. New `Refresh`
+mode in `/feature` re-syncs notices after manual frontmatter
+edits.
+
+`sub-projects.md` and `claude-kit-reference.md` generalize to
+`active-<concern>.md` as a pattern; future concerns slot in
+cleanly.
+
+### Operating preferences — `state/preferences.md` + `/preferences`
+
+The dual to "When in doubt — ask": **when *not* in doubt — act,
+and remember what was settled.**
+
+Three risk tiers:
+
+| Tier | Capture | Application |
+|---|---|---|
+| Low-risk | Auto-eligible (explicit signal OR streak threshold) | Silent with first-session disclosure |
+| High-risk | Explicit `/preferences set` only; never auto-offered | Always surfaces in `/status` |
+| Never-suppressible | Refused; always-ask | n/a |
+
+Two capture paths:
+
+1. **Explicit signal** — "always do X", "stop asking about Y",
+   `/preferences set`. Captured immediately.
+2. **Confidence-driven offer** — after a streak of 3 consecutive
+   same-answer responses on a low-risk fork, the asking skill
+   offers capture. Yes → preference written, log archived. No →
+   cooldown of 5 decisions before re-offering.
+
+New skill `/preferences` (modes: `list`, `show`, `set`, `revoke`,
+`clear-log`) for inspect/manage. Path 2 capture is implemented
+inline in the asking skills, not by `/preferences` itself.
+
+### Decision log — `state/decision-log.md`
+
+The observation layer that informs Path 2 of the capture protocol.
+Per-fork tally of every answer at registered preference IDs:
+
+```
+## auto-scaffold-shared-on-register
+- **Tally:** yes 3 / no 0 (streak: 3 yes)
+- **Last asked:** 2026-05-09
+- **Last offer:** never
+- **Tier:** low-risk
+
+### History
+- 2026-05-09 chazz: yes — sub-repo: ios
+- 2026-05-08 chazz: yes — sub-repo: web
+- 2026-05-07 chazz: yes — sub-repo: api
+```
+
+Aggregate header recomputed on each write. Captured forks move to
+a `## Captured (archive)` section preserving full history.
+High-risk forks are tracked but never auto-offered regardless of
+streak.
+
+### Proposals — per-repo staging area
+
+New top-level directory `proposals/<repo>/{backlog,promoted,retired}/`
++ `PHASES.md`. Lets the CTO plan, draft, and iterate tasks and
+phases for multiple repos in parallel without opening PRs in
+those repos prematurely. Promotion is the one-way path from
+staging into the sub-repo's actual `tasks/`.
+
+Two new skills:
+
+- **`/propose`** — modes: `new` (task or phase), `update`,
+  `retire`, `list`, `show`. Q&A walks the required sections from
+  governance. Files conform to `governance/task-spec-shape.md`
+  body shape; proposal-only frontmatter (slug, target_repo,
+  status, etc.) gets stripped at promotion.
+- **`/promote`** — auto-detects task vs phase. Reads sub-repo's
+  existing `tasks/` to assign next `TASK-NNN`. Phase IDs are
+  mapped from proposal-numbering to sub-repo-numbering with
+  explicit user confirmation; each task's `phase:` frontmatter
+  is rewritten at promotion. Opens
+  `chore/orch-task-NNN-<slug>` or `chore/orch-phase-<id>` PR;
+  archives proposal on success.
+
+The existing direct-drop path (`sub-projects.md` write protocol
+#3) is unchanged. Propose/promote is the iteration-friendly
+alternative; both paths converge on the same end state.
+
+### Skill wiring (the framework becomes real)
+
+`/register`, `/feature`, `/migration` are now
+**preferences-aware**: they read `state/preferences.md` before
+asking, log to `state/decision-log.md` after answering, and run
+the streak-threshold offer per the 5-step recipe in
+`kit/preferences.md` "Skill recipe at a known fork."
+
+| Skill | Known fork | Preference ID |
+|---|---|---|
+| `/register` | shared/ scaffold offer | `auto-scaffold-shared-on-register` |
+| `/register` | install-claude-kit offer | `auto-install-kit-on-non-kit-register` |
+| `/feature` | per-repo notice write confirm | `auto-write-active-features-notices` |
+| `/migration` | per-repo notice write confirm | `auto-write-active-migrations-notices` |
+
+Two reading skills updated to surface new state:
+
+- **`/sync-check`** Process step 6 (new): refreshes per-sub-repo
+  state files at `state/sub-repos/<name>.md` regenerating
+  Proposals (counts from `proposals/<name>/`) and Shared context
+  (per-file presence + last touched in
+  `repos/<name>/.claude/shared/`) sections. Notes section
+  preserved (hand-edited).
+- **`/status`** surfaces three new sections: Proposals (per-repo
+  draft + phase counts, only when non-zero), High-risk
+  preferences (always shown — sticky), Approaching auto-offer
+  (low-risk forks at streak 2; advisory).
+
+### Required updates in claude-kit
+
+Spec'd in `kit/claude-kit-reference.md` "Required updates to
+claude-kit for orchestrator v0.11.0." Without these, the
+orchestrator side works fully (writes notices, scaffolds
+shared/), but sub-kit sessions don't surface the new signals:
+
+- `task-rules.md` reads all `<sub>/.claude/active-*.md` notices,
+  not just migrations
+- `task-rules.md` adds `shared/inbox.md` and `shared/notes.md`
+  to session-start reads
+- `task-rules.md` references the orchestrator's
+  `dev-preflight.md` as the canonical pre-flight discipline
+- `task-template.md` adds the four new required body sections
+  (Assumptions, Out of scope, Contract impact, Definition of
+  done)
+
+### Verification
+
+After install or `/sync`:
+
+1. `bin/init` against a clean target → confirm
+   `state/preferences.md`, `state/decision-log.md`,
+   `proposals/README.md`, `_template-task.md`,
+   `_template-PHASES.md` all materialize. Confirm
+   `kit/governance/` propagates to `.claude/governance/`.
+2. `/register` against a real sub-repo → confirm step 11 offers
+   the shared/ scaffold; accept; confirm
+   `chore/orch-init-shared` PR opens with the four files.
+   Confirm `/preferences list` shows the decision logged.
+3. `/register` two more times against fresh repos, accepting each
+   shared/ scaffold. After the third, confirm the
+   "remember as preference" offer fires (Path 2). Accept; confirm
+   `state/preferences.md` has the new entry. Run `/register` a
+   fourth time → confirm scaffold happens silently with
+   first-session disclosure.
+4. `/propose new task for <repo>: …` → confirm Q&A walks the 9
+   required sections; confirm proposal lands in
+   `proposals/<repo>/backlog/<slug>.md`. `/propose show <slug>` →
+   renders body. `/propose update <slug>` → re-prompts revisions.
+   `/promote <slug>` → opens
+   `chore/orch-task-001-<slug>` PR in target repo. Confirm
+   proposal archives to `promoted/`.
+5. `/preferences revoke <id>` → moves entry to revoked section;
+   the log re-activates with fresh history.
+6. `/status` → confirms new sections render when content non-zero.
+
+### Deferred to v0.12.0
+
+Carried forward from v0.10.0:
+
+- **Convert `/sync` to scripted form** (`bin/sync`).
+- **Convert `/sync-check`, `/roadmap`, `/tasks`, `/backlog`,
+  `/status` mechanical halves to scripts.**
+
+New for v0.12.0:
+
+- **`/decision` → `active-decisions.md`** — still a real design
+  call (lifecycle question: ADRs are forever, what drops off?).
+  Defensible to skip entirely; `dev-preflight.md` already says to
+  read `decisions/` directly.
+- **Decision-log pruning policy** — entries older than 90 days
+  in `## Active` sections without capture should compact.
+  Currently they accumulate.
+- **`/proposals`-or-similar cross-repo aggregation** — see all
+  proposals across all repos including those tied to a specific
+  feature plan.
+
 ## 0.10.0 — 2026-05-09
 
 Skill-alignment sweep + new `/backlog` compiler. Every existing
