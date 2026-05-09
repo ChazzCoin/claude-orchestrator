@@ -1,5 +1,150 @@
 # Changelog
 
+## 0.12.0 — 2026-05-09
+
+Central per-repo configuration + `/register` becomes a thin
+wrapper around a script that does the actual work. Establishes the
+**source-of-truth** discipline for sub-repo metadata: machine-readable
+JSON config that every script reads, replacing ad-hoc parsing of
+`state/manifest.md` for git_remote, default_branch, role, etc.
+
+### New file: `state/repos.json`
+
+```json
+{
+  "schema_version": 1,
+  "repos": {
+    "api": {
+      "git_remote": "git@github.com:org/api.git",
+      "role": "api",
+      "default_branch": "main",
+      "registered_at": "2026-05-09",
+      "kit_enabled": true,
+      "kit_version": null,
+      "kit_install_offered_at": null,
+      "kit_install_declined_at": null,
+      "last_synced_head": null,
+      "last_synced_at": null,
+      "last_pulled_at": null
+    }
+  }
+}
+```
+
+Bootstrapped from `bootstrap/repos.json.template` (skip-if-exists).
+The orchestrator's machine-readable source of truth — pre-loaded
+arguments for every script that operates on a sub-repo.
+
+`state/manifest.md` continues to exist as a human-readable view;
+`bin/register` writes both atomically.
+
+### New script: `bin/repo-config`
+
+Read/write helper for `state/repos.json`. Subcommands:
+
+| Subcommand | Effect |
+|---|---|
+| `list [--json]` | Compact list of repo names; `--json` full dump |
+| `exists <name>` | Exit 0 registered, 1 not |
+| `get <name>` | Full JSON entry for one repo |
+| `get <name> <field>` | Single field value (raw — useful in scripts) |
+| `add <name> --remote URL [--role R] [--default-branch B] [--kit-enabled true\|false]` | Register |
+| `set <name> <field> <value>` | Update one field |
+| `remove <name> [--force]` | Delete entry (asks unless `--force`) |
+
+Other scripts shell out to `bin/repo-config get <name> <field>`
+to fetch git_remote, default_branch, etc. — the canonical lookup
+path for "what's the URL for api?"
+
+### New script: `bin/register`
+
+Does the actual work of registering a sub-repo:
+
+1. Verifies remote URL reachability (`git ls-remote`)
+2. Detects default branch (`git ls-remote --symref HEAD`)
+3. **Queries `gh api` for kit-enabled status** — checks if
+   `.claude/foundation.json` exists on the remote, not in any
+   local clone. **Remote truth** for code state.
+4. Writes `state/repos.json` via `bin/repo-config add`
+5. Appends entry to `state/manifest.md`
+6. Creates `state/sub-repos/<name>.md` from template with
+   frontmatter populated
+7. Clones into `repos/<name>/` (unless `--no-clone`)
+8. Optionally stages `<sub>/.claude/shared/` files for the
+   scaffold PR (caller invokes `bin/open-orch-pr` to push)
+9. Outputs JSON for the skill to render
+
+CLI:
+
+```sh
+bin/register --remote URL [--name N] [--role R] \
+             [--scaffold-shared] [--no-clone] [--json]
+```
+
+### `/register` skill becomes a thin wrapper
+
+The skill is now responsible only for:
+
+- Interactive Q&A to gather inputs (name override, role, scaffold
+  preference)
+- Applying preferences via `bin/preferences-check resolve` (the
+  `auto-scaffold-shared-on-register` and
+  `auto-install-kit-on-non-kit-register` known forks)
+- Invoking `bin/register` with the gathered args
+- Calling `bin/open-orch-pr` if scaffold is accepted
+- Logging the decision via `bin/preferences-check log`
+- Rendering the script's JSON output as a user-facing summary
+
+Mechanics moved to the script; judgement-driven flow stays in the
+skill.
+
+### Source-of-remote-truth discipline
+
+This release establishes the principle that **scripts query
+remote for sub-repo code state, not local clones**. Applied here:
+
+- `bin/register` detects kit-enabled status via `gh api`, not
+  by reading `repos/<name>/.claude/foundation.json`
+- `bin/register` detects default branch via `git ls-remote
+  --symref HEAD`, not by checking out the clone
+
+Local working state (uncommitted changes, current branch the dev
+is on) remains observed for `/status` and similar — that's a
+different category. The principle: **code state is remote truth,
+local working state is observable signal**.
+
+Future scripts should follow this — when in doubt, query remote.
+
+### Wiring
+
+- MANIFEST.json: bootstrap/repos.json.template,
+  bin/repo-config, bin/register all sync via the standard
+  policies
+- /register SKILL.md adds an "Implementation" section pointing at
+  `bin/register` and documenting the script invocation
+
+### Verification
+
+`bin/repo-config` smoke-tested end-to-end:
+
+```sh
+bin/repo-config add api --remote "https://github.com/example/api.git" \
+                       --role api --default-branch main --kit-enabled false
+# {"added":"api","entry":{...}}
+
+bin/repo-config list
+#   api            api        main       non-kit
+
+bin/repo-config get api git_remote
+# https://github.com/example/api.git
+
+bin/repo-config exists api      # exit 0
+bin/repo-config exists nonex    # exit 1
+```
+
+`bin/register` script structure verified via `--help`. Full
+end-to-end test deferred to next real registration.
+
 ## 0.11.1 — 2026-05-09
 
 Five new `bin/` scripts that standardize the mechanical operations

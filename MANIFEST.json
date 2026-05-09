@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.11.1",
+  "version": "0.12.0",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -87,6 +87,18 @@
         "to": "bin/preferences-check",
         "policy": "file-replace-executable",
         "note": "Implements the 5-step recipe at a known fork from preferences.md. Subcommands: resolve (look up active preference), log (append decision-log entry, recompute aggregate, return offer signal), capture (write preference, archive log), revoke (move to revoked), clear-log (reset fork tally). Preferences-aware skills shell out to this instead of describing the algorithm in markdown."
+      },
+      {
+        "from": "bin/repo-config",
+        "to": "bin/repo-config",
+        "policy": "file-replace-executable",
+        "note": "Read/write helper for the central per-repo configuration at state/repos.json. Subcommands: list, exists, get, add, set, remove. Source of truth for registered sub-repos — every script that operates on a sub-repo reads from this. Replaces ad-hoc parsing of state/manifest.md."
+      },
+      {
+        "from": "bin/register",
+        "to": "bin/register",
+        "policy": "file-replace-executable",
+        "note": "Work-doing register script — verifies remote URL, detects default branch, queries gh API for kit-enabled status, writes state/repos.json + state/manifest.md + state/sub-repos/<name>.md, optionally clones into repos/<name>/ and scaffolds .claude/shared/. The /register skill is a thin wrapper that gathers args (interactive Q&A) and presents the script's output."
       },
       {
         "from": "kit/skill-architecture.md",
@@ -202,6 +214,7 @@
       { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
       { "from": "bootstrap/preferences.md.template",                "to": "state/preferences.md",       "policy": "skip-if-exists" },
       { "from": "bootstrap/decision-log.md.template",               "to": "state/decision-log.md",      "policy": "skip-if-exists" },
+      { "from": "bootstrap/repos.json.template",                    "to": "state/repos.json",           "policy": "skip-if-exists" },
       { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
       { "from": "bootstrap/design/README.md.template",              "to": "design/README.md",           "policy": "skip-if-exists" },
       { "from": "bootstrap/design/brand.md.template",               "to": "design/brand.md",            "policy": "skip-if-exists" },
