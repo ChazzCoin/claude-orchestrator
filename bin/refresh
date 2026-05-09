@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
-# claude-orchestrator refresh — fetch origin for every cloned sub-repo.
+# bin/refresh — fetch origin for every cloned sub-repo.
+#
+# Output: Pattern 17 — Git branch overview
+#         (per-repo state line: glyph + name + branch + ahead/behind + status text;
+#          see .claude/output-catalogue.md)
 #
 # Usage:
 #   bin/refresh
@@ -10,7 +14,7 @@
 #   - For each registered sub-repo with a local clone at repos/<name>/:
 #     git fetch origin, compute ahead/behind/dirty.
 #   - Writes state/last-fetch.json with timestamp + per-repo results.
-#   - Prints a one-line summary per sub-repo.
+#   - Prints a one-line summary per sub-repo (Pattern 17).
 #
 # Read-only against remotes. Never pulls, never merges, never touches
 # working trees. Idempotent — safe to re-run.
@@ -70,12 +74,23 @@ SUMMARY_LINES=()
 
 trap 'rm -f "$RESULTS_TSV"' EXIT
 
+# Truncate a string to N chars, adding an ellipsis if it overflows.
+trunc() {
+  local s="$1"
+  local n="$2"
+  if [ "${#s}" -gt "$n" ]; then
+    printf '%s…' "${s:0:$((n-1))}"
+  else
+    printf '%s' "$s"
+  fi
+}
+
 while IFS=$'\t' read -r NAME GIT_REMOTE BRANCH; do
   [ -z "$NAME" ] && continue
   TARGET="$REPOS_DIR/$NAME"
 
   if [ ! -d "$TARGET/.git" ]; then
-    SUMMARY_LINES+=("  $NAME  unfetched  (no local clone — bin/setup)")
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "○" "$(trunc "$NAME" 8)" "unfetched" "" "run bin/setup to clone")")
     printf "%s\t\t0\t0\tfalse\tunfetched\t\n" "$NAME" >> "$RESULTS_TSV"
     continue
   fi
@@ -89,13 +104,24 @@ while IFS=$'\t' read -r NAME GIT_REMOTE BRANCH; do
     if [ -n "$(git -C "$TARGET" status --porcelain 2>/dev/null)" ]; then
       DIRTY="true"
     fi
-    DIRTY_FLAG=""
-    [ "$DIRTY" = "true" ] && DIRTY_FLAG=" dirty"
-    SUMMARY_LINES+=("  $NAME  [$CURRENT_BRANCH +$AHEAD -$BEHIND]$DIRTY_FLAG")
+
+    # Status text: current / ahead / behind / diverged, plus optional dirty.
+    if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -eq 0 ]; then
+      STATUS_TXT="current"
+    elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -eq 0 ]; then
+      STATUS_TXT="ahead origin"
+    elif [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -gt 0 ]; then
+      STATUS_TXT="behind origin"
+    else
+      STATUS_TXT="diverged"
+    fi
+    [ "$DIRTY" = "true" ] && STATUS_TXT="$STATUS_TXT · dirty"
+
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "●" "$(trunc "$NAME" 8)" "$(trunc "$CURRENT_BRANCH" 20)" "+$AHEAD -$BEHIND" "$STATUS_TXT")")
     printf "%s\t%s\t%s\t%s\t%s\tok\t\n" "$NAME" "$CURRENT_BRANCH" "$AHEAD" "$BEHIND" "$DIRTY" >> "$RESULTS_TSV"
   else
     ERROR="$(printf '%s' "$FETCH_OUT" | head -c 200 | tr '\n\t' '  ')"
-    SUMMARY_LINES+=("  $NAME  ERROR: $ERROR")
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "✗" "$(trunc "$NAME" 8)" "" "" "ERROR: $ERROR")")
     printf "%s\t\t0\t0\tfalse\terror\t%s\n" "$NAME" "$ERROR" >> "$RESULTS_TSV"
   fi
 done <<< "$ENTRIES"
@@ -129,10 +155,16 @@ with open(out_path, "w") as f:
     f.write("\n")
 EOF
 
-echo "═══ /refresh @ $NOW ═══"
+# Pattern 17 — Git branch overview
+HUMAN_NOW="$(date -u +"%Y-%m-%d %H:%M UTC")"
+echo
+echo "  REFRESH  ·  $HUMAN_NOW"
+echo
 echo
 for line in "${SUMMARY_LINES[@]}"; do
   echo "$line"
 done
 echo
-echo "  saved: state/last-fetch.json"
+echo
+echo "   saved · state/last-fetch.json"
+echo

@@ -169,6 +169,60 @@ When a skill is purely scripted, `kit/skills/<name>/SKILL.md` is
 short and points at `bin/<name>`. When a skill is mixed, the
 SKILL.md describes which steps invoke which script.
 
+## Output discipline — pick a pattern
+
+Every script's terminal output picks a pattern from
+[`output-catalogue.md`](output-catalogue.md) — the kit-managed
+visual design catalogue. Don't invent custom output shapes.
+Consistency across all orchestrator scripts means a reader who's
+learned one output knows how to read every other.
+
+The catalogue contains 34 patterns covering completion cards,
+status dashboards, roadmaps, audits, deployment reports, alerts,
+empty states, and more. High-relevance patterns for the
+orchestrator domain are listed in the catalogue's intro.
+
+### Two requirements for any new script
+
+1. **Declare the pattern in the script header.** The first comment
+   block of the script names the catalogue pattern its output uses:
+
+   ```bash
+   #!/usr/bin/env bash
+   #
+   # bin/<name> — <one-line purpose>
+   #
+   # Output: Pattern 17 — Git branch overview
+   #         (per-repo state with status indicators)
+   #
+   # ... rest of header
+   ```
+
+2. **Reference the pattern in the SKILL.md.** When the skill
+   describes what the user sees, it cites the pattern by number and
+   name so the catalogue is the spec.
+
+### When the catalogue doesn't have a pattern that fits
+
+Two paths, in order of preference:
+
+1. **Compose existing patterns.** Most outputs are a section banner
+   (10) plus a status list (17 / 28 / 22). Combining is fine; the
+   header just declares the composition.
+2. **Propose a new pattern.** If a genuinely new shape is needed,
+   propose it as an addition to `output-catalogue.md` (PR), then
+   use it once it's accepted. Don't ship a one-off shape outside
+   the catalogue — that defeats the discipline.
+
+### Output discipline applies to interpretive skills too
+
+When an interpretive skill (`/decision`, `/feature`, etc.) writes
+to stdout for the user — summary, drafts, confirmations — the
+SKILL.md should still cite a pattern from the catalogue. The
+output may not be byte-identical run to run (it's drafted), but
+the *shape* (banner + list, alert variant, comparison matrix)
+should be consistent.
+
 ## What NOT to script
 
 - **Conversational drafting** — `/decision`, `/feature`, `/onboard`,

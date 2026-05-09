@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 #
-# claude-orchestrator setup — clone each registered sub-repo into repos/<name>/.
+# bin/setup — clone each registered sub-repo into repos/<name>/.
+#
+# Output: Composition of Pattern 23 (Activity timeline) for the per-repo
+#         clone progress + a summary block (cloned / skipped / collisions /
+#         failed). On first run, opens with a one-time identity prompt
+#         (Pattern 34 — Selection prompt style, single-question variant).
+#         See .claude/output-catalogue.md.
 #
 # Usage:
 #   bin/setup
@@ -11,10 +17,13 @@
 #   - Idempotent: skips entries already cloned with matching remote.
 #   - Best-effort: reports failures per-repo at the end; does not abort
 #     on individual clone failures.
+#   - First-run identity prompt populates .claude/local-config.json with
+#     `me` and `machine_id` (used by /inbox and other identity-aware skills).
 #
 # This is the collaborator-onboarding flow. After cloning the orchestrator
 # instance on a new machine, run bin/setup to populate repos/. The script
-# is fully automatic — no prompts.
+# is fully automatic for clones — no prompts beyond the one-time identity
+# question.
 #
 # For first-time registration of a new sub-repo (per-company, deliberate),
 # use the /register skill from inside Claude Code.

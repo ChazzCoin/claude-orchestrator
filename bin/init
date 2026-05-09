@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #
-# claude-orchestrator init — bootstrap a <company>-orchestrator instance.
+# bin/init — bootstrap a <company>-orchestrator instance.
+#
+# Output: Pattern 23 — Activity timeline
+#         (sectional `→` arrows for stages; indented per-action lines
+#          beneath; final next-steps block as Pattern 1 hero-style.
+#          See .claude/output-catalogue.md.)
 #
 # Usage:
 #   claude-orchestrator/bin/init [target-dir]
@@ -103,6 +108,12 @@ fi
 if [ -f "$KIT_DIR/kit/skill-architecture.md" ]; then
   cp "$KIT_DIR/kit/skill-architecture.md" "$TARGET/.claude/skill-architecture.md"
   echo "    rules:    .claude/skill-architecture.md"
+fi
+
+# kit/output-catalogue.md → .claude/output-catalogue.md
+if [ -f "$KIT_DIR/kit/output-catalogue.md" ]; then
+  cp "$KIT_DIR/kit/output-catalogue.md" "$TARGET/.claude/output-catalogue.md"
+  echo "    rules:    .claude/output-catalogue.md"
 fi
 
 mkdir -p "$TARGET/.claude/skills"

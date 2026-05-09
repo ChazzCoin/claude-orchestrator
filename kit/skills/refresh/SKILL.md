@@ -14,6 +14,10 @@ The flow is locked: read manifest → for each cloned sub-repo
 `state/last-fetch.json` → print summary. Read-only against remotes.
 Never pulls, never merges, never touches working trees.
 
+**Output pattern:** [Pattern 17 — Git branch overview](../../output-catalogue.md#17--git-branch-overview).
+Per-repo state line with glyph (`●` cloned / `○` unfetched /
+`✗` error), name, branch, ahead/behind counts, status text.
+
 ## Process
 
 1. Run `bash <orchestrator-root>/bin/refresh`.

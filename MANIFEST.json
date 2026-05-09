@@ -62,7 +62,13 @@
         "from": "kit/skill-architecture.md",
         "to": ".claude/skill-architecture.md",
         "policy": "file-replace",
-        "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions. Generic across instances."
+        "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions, output-pattern selection requirement. Generic across instances."
+      },
+      {
+        "from": "kit/output-catalogue.md",
+        "to": ".claude/output-catalogue.md",
+        "policy": "file-replace",
+        "note": "Visual design catalogue — 34 terminal output patterns. Every orchestrator script picks a pattern from here for its output shape. Consistency across scripts means a reader who's learned one knows how to read all the others. Generic across instances."
       },
       {
         "from": "kit/skills/",
