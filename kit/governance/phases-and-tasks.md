@@ -352,3 +352,11 @@ review, no rollback path when something breaks in prod.
   cross-cutting features are authored
 - [`../skills/tasks/SKILL.md`](../skills/tasks/SKILL.md) — how
   active tasks are aggregated across sub-repos
+- [`../../proposals/README.md`](../../proposals/README.md) +
+  [`../skills/propose/SKILL.md`](../skills/propose/SKILL.md) +
+  [`../skills/promote/SKILL.md`](../skills/promote/SKILL.md) —
+  staging area for phases and tasks before they're committed to
+  the sub-repo. Apply the rules in this doc to proposed phases
+  just as to committed ones; the staging area is for iterating
+  on the rules' inputs (outcomes, exit criteria, freeze lists,
+  task lists) before commitment.

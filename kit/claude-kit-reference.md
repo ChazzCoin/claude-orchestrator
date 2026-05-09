@@ -229,6 +229,19 @@ start per the dev pre-flight checklist
 ([`kit/governance/dev-preflight.md`](governance/dev-preflight.md)
 step 2).
 
+### Orchestrator-side proposal staging *(not in the sub-repo)*
+
+The orchestrator may stage proposed phases and tasks for this repo
+at `proposals/<this-repo>/` in the orchestrator before committing
+them to `<sub>/tasks/`. The sub-kit doesn't see this directly —
+proposals appear in the sub-repo only at promotion time, as a
+standard `chore/orch-task-NNN-<slug>` or `chore/orch-phase-<id>`
+PR. The promoted task spec body conforms to the sub-kit's
+`task-template.md` shape; reference back to the proposal lives in
+the PR body.
+
+Reference: [`../proposals/README.md`](../proposals/README.md).
+
 ### `<sub>/.claude/active.md`
 
 Voluntary advertisement from the sub-kit to the orchestrator. Read

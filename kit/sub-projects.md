@@ -288,6 +288,27 @@ may be scaffolded with empty templates so the channel exists. Whether
 `/register` does this automatically is a project decision; the
 default is conservative (offer once, don't auto-scaffold).
 
+### 6. Proposal staging — orchestrator-side per-repo task drafts
+
+For tasks and phases the CTO is planning but hasn't committed to a
+sub-repo yet. Lives in the orchestrator at `proposals/<repo>/`,
+not in the sub-repo. Lets multiple repos be planned in parallel
+without opening PRs in those repos prematurely.
+
+See [`../proposals/README.md`](../proposals/README.md) for the
+lifecycle. Skills:
+
+- [`/propose`](skills/propose/SKILL.md) — new / update / retire / list
+  proposals (tasks and phases).
+- [`/promote`](skills/promote/SKILL.md) — push a proposal into the
+  target sub-repo via the standard `chore/orch-task-*` PR flow
+  (which is path 3 above — the propose/promote pair feeds path 3).
+
+Promotion is the only sanctioned path from staging to a sub-repo's
+`tasks/`. Direct task spec drops via path 3 still work for tasks
+that don't need iteration; both paths converge on the same end
+state.
+
 ---
 
 ## Code boundary (non-negotiable)

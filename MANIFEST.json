@@ -107,6 +107,12 @@
         "note": "Migration template and format docs. Top-level files only — does not touch active/ or closed/."
       },
       {
+        "from": "kit/proposals/",
+        "to": "proposals/",
+        "policy": "directory-mirror-files",
+        "note": "Proposal staging area templates (_template-task.md, _template-PHASES.md, README.md). Top-level files only — does not touch per-repo subdirectories created lazily by /propose."
+      },
+      {
         "from": "kit/risks/",
         "to": "risks/",
         "policy": "directory-mirror-files",

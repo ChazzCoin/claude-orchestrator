@@ -22,6 +22,24 @@ no further conversation. If they can't, the spec is incomplete.
 Sub-kit transitions via `git mv`. ID format: `TASK-NNN` where NNN is
 zero-padded to 3 digits, monotonic across the sub-repo's history.
 
+### Pre-promotion: orchestrator-side staging
+
+Tasks may be drafted, iterated, and refined in the orchestrator's
+staging area before they land in the sub-repo. See
+[`../../proposals/README.md`](../../proposals/README.md) and the
+[`/propose`](../skills/propose/SKILL.md) /
+[`/promote`](../skills/promote/SKILL.md) skills.
+
+Staged tasks live at `proposals/<repo>/backlog/<slug>.md` with the
+same body shape as below — required sections are identical. The
+proposal frontmatter has additional fields for proposal management
+(slug, target_repo, target_phase, status, proposed_at, etc.) that
+get stripped at promotion. The body is preserved verbatim.
+
+Recommended path: stage non-trivial tasks via `/propose`, iterate
+until ready, then `/promote`. Direct-drop into `<sub>/tasks/backlog/`
+is fine for tasks that are fully-formed in one session.
+
 ---
 
 ## Required frontmatter
