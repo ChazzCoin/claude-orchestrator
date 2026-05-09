@@ -47,6 +47,12 @@
         "note": "Per-sub-repo state file template. Each registered sub-repo gets state/sub-repos/<name>.md instantiated from this."
       },
       {
+        "from": "bin/setup",
+        "to": "bin/setup",
+        "policy": "file-replace-executable",
+        "note": "Collaborator-onboarding script — clones registered sub-repos into repos/<name>/. Synced from kit so improvements propagate; instances get the latest version on /sync."
+      },
+      {
         "from": "kit/skills/",
         "to": ".claude/skills/",
         "policy": "directory-mirror",

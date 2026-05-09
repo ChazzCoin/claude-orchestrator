@@ -466,24 +466,30 @@ section are preserved.
 
 ## Registration
 
-How sub-repos physically get associated with the orchestrator —
-where they live on disk, when to clone, when to leave alone — is
-documented in detail at
+How sub-repos physically land on disk relative to the orchestrator
+is documented in detail at
 [`sub-project-registration.md`](sub-project-registration.md).
 
 Headline rules:
 
-- **Keep repos where they live.** Manifest records absolute paths;
-  the orchestrator doesn't move, clone, or symlink existing repos.
-- **Recommended layout: sibling.** Orchestrator and registered
-  sub-repos as siblings under a parent dir (e.g. `~/ChazzCoin/`).
-- **Three input cases for `/register`:** existing local path
-  (validate + register), GitHub URL not yet local (clone with
-  approval, then register), neither (ask the user — don't guess).
-- **Default clone destination:** `<orchestrator-parent>/<repo-name>`
-  (sibling slot). User can override.
-- **Never move an existing repo to "tidy up."** Other tooling
-  (IDE, scripts) likely depends on current paths.
+- **The orchestrator owns its checkouts.** Sub-repos clone into
+  `<orchestrator-root>/repos/<name>/` — convention, not
+  configuration. Path is identical on every machine. `repos/` is
+  gitignored.
+- **Two flows, two lifecycles.** `/register` (per-repo, deliberate,
+  first-time setup) drafts a manifest entry and clones the new
+  sub-repo. `bin/setup` (bulk, automatic, collaborator onboarding)
+  reads the manifest and clones any sub-repos not yet present.
+- **Existing checkouts elsewhere are not referenced.** If the user
+  has the same repo cloned at `~/work/<name>/`, that's a personal
+  working copy — opaque to the orchestrator. The orchestrator's
+  `repos/<name>/` is the canonical local view.
+- **Mobile / remote-only fallback.** Read-side skills query `gh api`
+  against the manifest's `git_remote` when no local clone is
+  present. Write-side operations require a local clone (run
+  `bin/setup` first).
+- **Never registers without `git_remote`.** A repo with no remote
+  can't be coordinated — refuse and ask the user to add one.
 
 ---
 

@@ -101,9 +101,12 @@ The same pattern will apply to future concerns
    the diffs to the user.
 
 5. **Draft sub-repo notices.** For each affected sub-repo:
-   - Read `state/manifest.md` to get the local path.
-   - Render `.claude/active-migrations.md` content **wholesale**
-     from `migrations/active/`, using the template at
+   - The sub-repo's working tree is at `repos/<name>/` (convention).
+     Notice writes require a local clone. If `repos/<name>/` doesn't
+     exist, surface that to the user in step 6 — they can run
+     `bin/setup` to clone it or skip the notice for that sub-repo.
+   - Render `repos/<name>/.claude/active-migrations.md` content
+     **wholesale** from `migrations/active/`, using the template at
      `.claude/templates/sub-repo-notices/migrations.md.template` —
      see "Notice file format" above. The new migration is now in
      `migrations/active/`, so it lands in the rendered output

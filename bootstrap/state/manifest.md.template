@@ -14,32 +14,41 @@ Update via `/register` or by editing this file directly.
 >
 > **Registration discipline.** See
 > [`.claude/sub-project-registration.md`](../../.claude/sub-project-registration.md)
-> for the input cases (existing path / GitHub URL / unknown), the
-> clone target convention, and the anti-patterns. The orchestrator
-> doesn't move existing repos — it adapts to where they live.
+> for how `/register` (per-repo, deliberate — first-time company
+> setup) and `bin/setup` (bulk, automatic — collaborator onboarding)
+> work together. The orchestrator manages its own checkouts under
+> `repos/` — it does not reference external clones on the user's
+> machine.
 
-## Recommended layout
+## Layout
 
-The orchestrator lives as a **sibling** of the registered sub-repos:
+Sub-repos clone into the orchestrator's own workspace at a fixed
+convention path:
 
 ```
-~/ChazzCoin/                        (or wherever your code lives)
-├── {{COMPANY_NAME}}-orchestrator/  this orchestrator instance
-├── {{COMPANY_NAME}}-api/           registered sub-repo
-├── {{COMPANY_NAME}}-ios/           registered sub-repo
-├── {{COMPANY_NAME}}-web/           registered sub-repo
-└── {{COMPANY_NAME}}-devops/        registered sub-repo
+{{COMPANY_NAME}}-orchestrator/      cloned from <org>/<company>-orchestrator
+├── .git/                            the orchestrator's repo
+├── .claude/                         skills, rules, foundation.json
+├── decisions/, state/, ...          the brain
+├── bin/setup                        clones all sub-repos for new collaborators
+└── repos/                           GITIGNORED — sub-repos clone here
+    ├── api/                         (its own .git, working copy)
+    ├── ios/
+    ├── web/
+    └── devops/
 ```
 
-Recommended, not required. The manifest stores absolute paths, so
-unconventional layouts work — but defaults assume siblings.
+`repos/` is gitignored. Each sub-repo retains its own `.git` and
+behaves normally inside. The path is **convention, not config** —
+always `<orchestrator-root>/repos/<name>/`, never stored, never
+varies per machine. Existing checkouts elsewhere on the user's
+machine are not referenced — the orchestrator manages its own copies.
 
 ## Format
 
 ```
 ## <name>
 - **Role:** api | ios | web | devops | other
-- **Local path:** /absolute/path/to/repo
 - **Git remote:** <url>
 - **Default branch:** main
 - **Kit-enabled:** true | false | unknown
@@ -50,10 +59,11 @@ unconventional layouts work — but defaults assume siblings.
 - **Notes:** <one-line — anything that affects how state is queried>
 ```
 
-**Kit-enabled detection:** `true` if `<local-path>/.claude/foundation.json`
+**Kit-enabled detection:** `true` if `repos/<name>/.claude/foundation.json`
 exists with `kit.repo` containing `claude-kit`. `false` if it doesn't.
 `unknown` only during the moment between registration and the first
-`/sync-check`.
+`/sync-check`. On machines without local checkouts (e.g. mobile),
+detection happens via `gh api` against the `git_remote`.
 
 ---
 
@@ -64,7 +74,6 @@ _(populate via /register or by hand)_
 <!--
 ## api
 - **Role:** api
-- **Local path:** /Users/<you>/ChazzCoin/<company>-api      (sibling of the orchestrator)
 - **Git remote:** git@github.com:<org>/<company>-api.git
 - **Default branch:** main
 - **Kit-enabled:** true

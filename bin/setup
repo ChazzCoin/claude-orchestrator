@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+#
+# claude-orchestrator setup — clone each registered sub-repo into repos/<name>/.
+#
+# Usage:
+#   bin/setup
+#
+# Behavior:
+#   - Reads state/manifest.md.
+#   - For each registered sub-repo, clones <git_remote> into repos/<name>/.
+#   - Idempotent: skips entries already cloned with matching remote.
+#   - Best-effort: reports failures per-repo at the end; does not abort
+#     on individual clone failures.
+#
+# This is the collaborator-onboarding flow. After cloning the orchestrator
+# instance on a new machine, run bin/setup to populate repos/. The script
+# is fully automatic — no prompts.
+#
+# For first-time registration of a new sub-repo (per-company, deliberate),
+# use the /register skill from inside Claude Code.
+
+set -euo pipefail
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="$ORCH_ROOT/state/manifest.md"
+REPOS_DIR="$ORCH_ROOT/repos"
+GITIGNORE="$ORCH_ROOT/.gitignore"
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "no manifest found at $MANIFEST"
+  echo "is this an orchestrator instance? Run bin/init first."
+  exit 1
+fi
+
+# Hygiene check: warn if repos/ is not gitignored.
+if [ -f "$GITIGNORE" ] && ! grep -q "^repos/$" "$GITIGNORE"; then
+  echo "WARNING: 'repos/' is not in .gitignore."
+  echo "         Add it before committing to avoid tracking sub-repo checkouts:"
+  echo "           echo 'repos/' >> .gitignore"
+  echo
+fi
+
+# Parse manifest into name + git_remote pairs.
+# Each registered sub-repo lives under the `## Sub-repos` heading as:
+#   ## <name>
+#   ...
+#   - **Git remote:** <url>
+#   ...
+# Strip HTML comment blocks first so commented-out example entries
+# don't get parsed as real registrations.
+ENTRIES=$(sed '/<!--/,/-->/d' "$MANIFEST" | awk '
+  /^## Sub-repos/ { in_section = 1; next }
+  in_section && /^## / {
+    name = $2
+    next
+  }
+  in_section && /^- \*\*Git remote:\*\* / {
+    sub(/^- \*\*Git remote:\*\* /, "")
+    sub(/[ \t]+$/, "")
+    if (name != "") {
+      print name "\t" $0
+      name = ""
+    }
+  }
+')
+
+if [ -z "$ENTRIES" ]; then
+  echo "No sub-repos registered in $MANIFEST."
+  echo "Use the /register skill from inside Claude Code to add one."
+  exit 0
+fi
+
+mkdir -p "$REPOS_DIR"
+
+echo "Setting up sub-repos under $REPOS_DIR"
+echo
+
+CLONED=()
+SKIPPED=()
+COLLISION=()
+FAILED=()
+
+while IFS=$'\t' read -r NAME GIT_REMOTE; do
+  TARGET="$REPOS_DIR/$NAME"
+
+  if [ -d "$TARGET/.git" ]; then
+    EXISTING_REMOTE=$(git -C "$TARGET" config --get remote.origin.url 2>/dev/null || echo "")
+    if [ "$EXISTING_REMOTE" = "$GIT_REMOTE" ]; then
+      echo "  $NAME ... already cloned, skipping"
+      SKIPPED+=("$NAME")
+    else
+      echo "  $NAME ... COLLISION (remote mismatch)"
+      COLLISION+=("$NAME (existing: ${EXISTING_REMOTE:-<none>}; expected: $GIT_REMOTE)")
+    fi
+    continue
+  fi
+
+  if [ -e "$TARGET" ]; then
+    echo "  $NAME ... COLLISION (path exists but is not a git repo)"
+    COLLISION+=("$NAME (target $TARGET exists but is not a git repo)")
+    continue
+  fi
+
+  echo "  $NAME ... cloning from $GIT_REMOTE"
+  if CLONE_OUTPUT=$(git clone "$GIT_REMOTE" "$TARGET" 2>&1); then
+    CLONED+=("$NAME")
+  else
+    echo "$CLONE_OUTPUT" | sed 's/^/      /'
+    FAILED+=("$NAME")
+  fi
+done <<< "$ENTRIES"
+
+echo
+echo "═══ SETUP SUMMARY ═══"
+if [ ${#CLONED[@]} -gt 0 ];   then echo "  cloned:    ${CLONED[*]}"; fi
+if [ ${#SKIPPED[@]} -gt 0 ];  then echo "  skipped:   ${SKIPPED[*]} (already cloned)"; fi
+if [ ${#COLLISION[@]} -gt 0 ]; then
+  echo "  collisions:"
+  for ENTRY in "${COLLISION[@]}"; do echo "    - $ENTRY"; done
+fi
+if [ ${#FAILED[@]} -gt 0 ];   then echo "  failed:    ${FAILED[*]}"; fi
+
+if [ ${#FAILED[@]} -gt 0 ] || [ ${#COLLISION[@]} -gt 0 ]; then
+  echo
+  echo "Some sub-repos need attention. Address auth, network access, or path"
+  echo "collisions and re-run bin/setup. The manifest is unchanged; setup is"
+  echo "idempotent."
+  exit 1
+fi
+
+echo
+echo "Setup complete."

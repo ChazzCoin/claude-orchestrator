@@ -1,7 +1,6 @@
 ---
 name: <sub-repo-name>
 role: api | ios | web | devops | other
-local_path: /absolute/path
 git_remote: <url>
 default_branch: main
 kit_enabled: true | false | unknown

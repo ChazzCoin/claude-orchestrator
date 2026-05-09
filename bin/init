@@ -84,6 +84,14 @@ if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
   echo "    template: state/sub-repos/_template.md"
 fi
 
+# bin/setup → bin/setup (collaborator-onboarding script)
+mkdir -p "$TARGET/bin"
+if [ -f "$KIT_DIR/bin/setup" ]; then
+  cp "$KIT_DIR/bin/setup" "$TARGET/bin/setup"
+  chmod +x "$TARGET/bin/setup"
+  echo "    script:   bin/setup"
+fi
+
 mkdir -p "$TARGET/.claude/skills"
 if [ -d "$KIT_DIR/kit/skills" ]; then
   for skill in "$KIT_DIR/kit/skills"/*/; do
@@ -247,6 +255,10 @@ if [ ! -f "$TARGET/.gitignore" ]; then
 .claude/settings.local.json
 .claude/worktrees/
 
+# Bootstrap-cloned sub-repos (managed by bin/setup).
+# Each subdir has its own .git — never tracked by the orchestrator.
+repos/
+
 # Generated state (regenerated on demand)
 state/sync-status.md
 state/audit-progress.md
@@ -270,8 +282,11 @@ Next steps:
      These shape every ADR you'll file.
   5. Run /audit inside Claude Code to populate stack, contracts,
      conventions, platform-constraints — that's the v1 entry point.
-  6. Use /register to add sub-repos to state/manifest.md as you
-     spin them up.
+  6. Use /register to add each sub-repo to state/manifest.md
+     (per-repo, deliberate). Registration clones into repos/<name>/.
+  6a. After registering, push the manifest. Subsequent collaborators
+      clone the orchestrator and run bin/setup to populate their
+      repos/ — fully automatic, no prompts.
   7. Fill in ownership.md, vendors.md, security-posture.md,
      compliance.md as data exists. Don't fill them with fiction.
   8. cost-tracking.md and slos.md stay as scaffolding until you
