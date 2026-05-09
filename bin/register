@@ -1,0 +1,359 @@
+#!/usr/bin/env bash
+#
+# bin/register — register a sub-repo with the orchestrator.
+#
+# Output: Pattern 23 — Activity timeline
+#         (sectional `→` arrows for stages: verify → detect → record →
+#          clone → scaffold → done; final block as Pattern 1 hero card.
+#          See .claude/output-catalogue.md.)
+#
+# Usage:
+#   bin/register --remote URL [--name NAME] [--role ROLE] \
+#                [--scaffold-shared] [--no-scaffold] \
+#                [--no-clone] [--json]
+#
+# Args:
+#   --remote URL         Git remote URL (required)
+#   --name NAME          Sub-repo name (default: derived from URL basename)
+#   --role ROLE          api|ios|web|devops|other (default: other)
+#   --scaffold-shared    Auto-scaffold <sub>/.claude/shared/ at end
+#   --no-scaffold        Skip the scaffold prompt entirely
+#   --no-clone           Don't clone repos/<name>/; record config only
+#   --json               Output result as JSON (for skill consumption)
+#
+# Behavior — remote-truth where possible:
+#   1. Verify the remote URL is reachable (`git ls-remote`).
+#   2. Detect default branch (`git ls-remote --symref HEAD <url>`).
+#   3. Check if repo is kit-enabled (gh api for .claude/foundation.json).
+#   4. Verify name is unique against state/repos.json (and manifest if
+#      present for backward compat).
+#   5. Add entry to state/repos.json via bin/repo-config add.
+#   6. Append a row to state/manifest.md (rendered view; preserves
+#      existing entries).
+#   7. Create state/sub-repos/<name>.md from template.
+#   8. Clone into repos/<name>/ (unless --no-clone).
+#   9. If --scaffold-shared (or interactive accept), call
+#      bin/open-orch-pr to scaffold .claude/shared/ in the sub-repo.
+#  10. Output structured result (JSON or human-readable).
+#
+# This script does the actual work. The /register skill is a thin
+# wrapper that gathers args (interactive Q&A for things like role),
+# calls this script, and presents the output to the user.
+
+set -euo pipefail
+
+# ---- args -------------------------------------------------------------------
+
+REMOTE=""
+NAME=""
+ROLE="other"
+SCAFFOLD_SHARED=0
+NO_SCAFFOLD=0
+NO_CLONE=0
+JSON_OUT=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --remote) REMOTE="$2"; shift 2 ;;
+    --name) NAME="$2"; shift 2 ;;
+    --role) ROLE="$2"; shift 2 ;;
+    --scaffold-shared) SCAFFOLD_SHARED=1; shift ;;
+    --no-scaffold) NO_SCAFFOLD=1; shift ;;
+    --no-clone) NO_CLONE=1; shift ;;
+    --json) JSON_OUT=1; shift ;;
+    -h|--help)
+      grep '^#' "$0" | head -38 | sed 's/^# \?//'
+      exit 0
+      ;;
+    *)
+      echo "unknown arg: $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [ -z "$REMOTE" ]; then
+  echo "missing --remote URL" >&2
+  exit 2
+fi
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_CONFIG="$ORCH_ROOT/bin/repo-config"
+
+# ---- helpers ----------------------------------------------------------------
+
+# Buffer for log output (so we can also embed in JSON result if requested)
+LOG_BUF=""
+log() {
+  echo "$1"
+  LOG_BUF="$LOG_BUF$1"$'\n'
+}
+
+# Output a final structured result + exit
+finish_ok() {
+  local msg="$1"
+  shift
+  if [ "$JSON_OUT" -eq 1 ]; then
+    python3 -c "
+import json, sys
+result = {
+  'ok': True,
+  'name': '$NAME',
+  'remote': '$REMOTE',
+  'default_branch': '$DEFAULT_BRANCH',
+  'kit_enabled': $KIT_ENABLED_PY,
+  'cloned': '$CLONED',
+  'shared_scaffolded': '$SHARED_SCAFFOLDED',
+  'message': '$msg',
+}
+print(json.dumps(result, indent=2))
+"
+  else
+    echo
+    echo "✓ $msg"
+  fi
+  exit 0
+}
+
+finish_err() {
+  local msg="$1"
+  if [ "$JSON_OUT" -eq 1 ]; then
+    python3 -c "import json; print(json.dumps({'ok': False, 'error': '''$msg'''}))"
+  else
+    echo "✗ $msg" >&2
+  fi
+  exit 1
+}
+
+# Derive name from URL: 'git@github.com:org/api-repo.git' → 'api-repo'
+# 'https://github.com/org/api-repo.git' → 'api-repo'
+derive_name_from_url() {
+  local url="$1"
+  local n="${url##*/}"      # strip everything up to last /
+  n="${n%.git}"             # strip trailing .git
+  n="${n%/}"                # strip trailing /
+  echo "$n"
+}
+
+# ---- 1. Verify remote -------------------------------------------------------
+
+log "→ Registering $REMOTE"
+
+if ! git ls-remote "$REMOTE" >/dev/null 2>&1; then
+  finish_err "remote unreachable: $REMOTE (auth issue, typo, or network)"
+fi
+log "  ✓ remote reachable"
+
+# ---- 2. Default branch ------------------------------------------------------
+
+DEFAULT_BRANCH=""
+SYMREF=$(git ls-remote --symref "$REMOTE" HEAD 2>/dev/null | head -1 || true)
+if [[ "$SYMREF" =~ ref:[[:space:]]+refs/heads/([^[:space:]]+) ]]; then
+  DEFAULT_BRANCH="${BASH_REMATCH[1]}"
+fi
+[ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
+log "  ✓ default branch: $DEFAULT_BRANCH"
+
+# ---- 3. Kit detection (remote query) ----------------------------------------
+
+KIT_ENABLED="unknown"
+KIT_ENABLED_PY="None"
+# Try gh api if the remote is on github.com
+if [[ "$REMOTE" =~ github\.com ]]; then
+  # Extract owner/repo from URL
+  OWNER_REPO=""
+  if [[ "$REMOTE" =~ github\.com[:/]([^/]+/[^/]+)\.git$ ]]; then
+    OWNER_REPO="${BASH_REMATCH[1]}"
+  elif [[ "$REMOTE" =~ github\.com[:/]([^/]+/[^/]+)$ ]]; then
+    OWNER_REPO="${BASH_REMATCH[1]}"
+  fi
+
+  if [ -n "$OWNER_REPO" ]; then
+    if gh api "repos/$OWNER_REPO/contents/.claude/foundation.json" >/dev/null 2>&1; then
+      KIT_ENABLED="true"
+      KIT_ENABLED_PY="True"
+      log "  ✓ kit-enabled (foundation.json present on remote)"
+    else
+      KIT_ENABLED="false"
+      KIT_ENABLED_PY="False"
+      log "  ✓ kit-status: non-kit (no foundation.json)"
+    fi
+  else
+    log "  · could not parse owner/repo from URL; kit-status unknown"
+  fi
+else
+  log "  · non-GitHub remote; kit-status unknown (skipping API check)"
+fi
+
+# ---- 4. Derive + verify name ------------------------------------------------
+
+if [ -z "$NAME" ]; then
+  NAME="$(derive_name_from_url "$REMOTE")"
+fi
+
+if [ -z "$NAME" ]; then
+  finish_err "could not derive name from URL; pass --name explicitly"
+fi
+
+log "  ✓ name: $NAME"
+
+if "$REPO_CONFIG" exists "$NAME" 2>/dev/null; then
+  finish_err "already registered in state/repos.json: $NAME"
+fi
+
+# ---- 5. Add to state/repos.json --------------------------------------------
+
+log "→ Recording config"
+ADD_OUTPUT=$("$REPO_CONFIG" add "$NAME" \
+  --remote "$REMOTE" \
+  --role "$ROLE" \
+  --default-branch "$DEFAULT_BRANCH" \
+  --kit-enabled "$KIT_ENABLED" 2>&1)
+
+# Check for error in JSON output
+if echo "$ADD_OUTPUT" | grep -q '"error"'; then
+  finish_err "$(echo "$ADD_OUTPUT" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("error", "unknown error"))')"
+fi
+log "  ✓ state/repos.json updated"
+
+# ---- 6. Update state/manifest.md (rendered view, append) -------------------
+
+MANIFEST="$ORCH_ROOT/state/manifest.md"
+TODAY="$(date -u +'%Y-%m-%d')"
+if [ -f "$MANIFEST" ]; then
+  # Append new entry under "## Sub-repos" if not already there
+  if ! grep -qE "^## $NAME$" "$MANIFEST"; then
+    cat >> "$MANIFEST" <<EOF
+
+## $NAME
+- **Role:** $ROLE
+- **Git remote:** $REMOTE
+- **Default branch:** $DEFAULT_BRANCH
+- **Kit-enabled:** $KIT_ENABLED
+- **Registered:** $TODAY
+- **Last synced HEAD:** never
+- **Last synced at:** never
+- **State file:** [state/sub-repos/$NAME.md](state/sub-repos/$NAME.md)
+- **Notes:**
+EOF
+    log "  ✓ state/manifest.md appended"
+  fi
+fi
+
+# ---- 7. Create state/sub-repos/<name>.md -----------------------------------
+
+STATE_FILE="$ORCH_ROOT/state/sub-repos/$NAME.md"
+TEMPLATE_FILE=""
+for path in "$ORCH_ROOT/state/sub-repos/_template.md" "$ORCH_ROOT/kit/state/sub-repos/_template.md"; do
+  [ -f "$path" ] && { TEMPLATE_FILE="$path"; break; }
+done
+
+if [ -n "$TEMPLATE_FILE" ] && [ ! -f "$STATE_FILE" ]; then
+  mkdir -p "$(dirname "$STATE_FILE")"
+  # Substitute frontmatter fields
+  awk -v name="$NAME" -v role="$ROLE" -v remote="$REMOTE" -v branch="$DEFAULT_BRANCH" \
+      -v kit_en="$KIT_ENABLED" -v today="$TODAY" '
+    /^name:/ { print "name: " name; next }
+    /^role:/ { print "role: " role; next }
+    /^git_remote:/ { print "git_remote: " remote; next }
+    /^default_branch:/ { print "default_branch: " branch; next }
+    /^kit_enabled:/ { print "kit_enabled: " kit_en; next }
+    /^kit_version:/ { print "kit_version: n/a"; next }
+    /^registered:/ { print "registered: " today; next }
+    /^last_synced_head:/ { print "last_synced_head: never"; next }
+    /^last_synced_at:/ { print "last_synced_at: never"; next }
+    /^last_pulled_at:/ { print "last_pulled_at: never"; next }
+    /^kit_install_offered:/ { print "kit_install_offered: n/a"; next }
+    /^kit_install_declined:/ { print "kit_install_declined: n/a"; next }
+    /^# <name>/ { print "# " name; next }
+    { print }
+  ' "$TEMPLATE_FILE" > "$STATE_FILE"
+  log "  ✓ state/sub-repos/$NAME.md created"
+fi
+
+# ---- 8. Clone (unless --no-clone) -------------------------------------------
+
+CLONED="false"
+REPOS_DIR="$ORCH_ROOT/repos"
+TARGET="$REPOS_DIR/$NAME"
+
+if [ "$NO_CLONE" -eq 0 ]; then
+  log "→ Cloning"
+  mkdir -p "$REPOS_DIR"
+
+  if [ -d "$TARGET/.git" ]; then
+    EXISTING_REMOTE=$(git -C "$TARGET" config --get remote.origin.url 2>/dev/null || echo "")
+    if [ "$EXISTING_REMOTE" = "$REMOTE" ]; then
+      log "  · clone exists already at $TARGET (remote matches); skipping"
+      CLONED="already-present"
+    else
+      log "  ✗ COLLISION: $TARGET exists with different remote: $EXISTING_REMOTE"
+      log "    config recorded but clone NOT done. Resolve the collision and run bin/setup."
+      CLONED="collision"
+    fi
+  elif [ -e "$TARGET" ]; then
+    log "  ✗ COLLISION: $TARGET exists but is not a git repo"
+    log "    config recorded but clone NOT done. Move/remove and run bin/setup."
+    CLONED="collision"
+  else
+    if git clone "$REMOTE" "$TARGET" 2>&1 | sed 's/^/    /'; then
+      CLONED="true"
+      log "  ✓ cloned into repos/$NAME/"
+    else
+      log "  ✗ clone failed; manifest entry kept, recover with bin/setup later"
+      CLONED="failed"
+    fi
+  fi
+fi
+
+# ---- 9. Optional: scaffold shared/ -----------------------------------------
+
+SHARED_SCAFFOLDED="not-attempted"
+if [ "$NO_SCAFFOLD" -eq 0 ] && [ "$CLONED" = "true" ]; then
+  if [ "$SCAFFOLD_SHARED" -eq 1 ]; then
+    log "→ Scaffolding <sub>/.claude/shared/"
+    SHARED_DIR="$TARGET/.claude/shared"
+    if [ -d "$SHARED_DIR" ]; then
+      log "  · shared/ already exists; skipping scaffold"
+      SHARED_SCAFFOLDED="already-present"
+    else
+      # Render the four templates
+      TEMPLATE_DIR=""
+      for path in "$ORCH_ROOT/.claude/templates/sub-repo-shared" "$ORCH_ROOT/kit/templates/sub-repo-shared"; do
+        [ -d "$path" ] && { TEMPLATE_DIR="$path"; break; }
+      done
+
+      if [ -z "$TEMPLATE_DIR" ]; then
+        log "  ✗ no templates found at .claude/templates/sub-repo-shared/"
+        SHARED_SCAFFOLDED="no-templates"
+      else
+        # We don't open the PR here — just stage files in working tree.
+        # The user (or skill) can call bin/open-orch-pr to push.
+        # That keeps this script's atomicity simple.
+        TS="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+        TODAY_DATE="$(date -u +'%Y-%m-%d')"
+        mkdir -p "$SHARED_DIR"
+        for f in architecture inbox notes references; do
+          src="$TEMPLATE_DIR/$f.md.template"
+          dst="$SHARED_DIR/$f.md"
+          if [ -f "$src" ] && [ ! -f "$dst" ]; then
+            sed -e "s/{{REPO_NAME}}/$NAME/g" \
+                -e "s/{{TIMESTAMP}}/$TS/g" \
+                -e "s/{{DATE}}/$TODAY_DATE/g" \
+                "$src" > "$dst"
+            log "  ✓ shared/$f.md"
+          fi
+        done
+        SHARED_SCAFFOLDED="staged"
+        log "  · files staged in working tree (uncommitted)"
+        log "    next: bin/open-orch-pr --repo $NAME --branch orch-init-shared \\"
+        log "                           --title \"scaffold .claude/shared/\" \\"
+        log "                           --body-file <body.md>"
+      fi
+    fi
+  fi
+fi
+
+# ---- 10. Output result ------------------------------------------------------
+
+finish_ok "registered $NAME ($REMOTE → repos/$NAME/)"

@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_description": "Central per-repo configuration. Source of truth for registered sub-repos. Written by bin/register; read by every script that operates on a sub-repo. Shape: {repos: {<name>: {git_remote, role, default_branch, registered_at, kit_enabled, last_synced_*, ...}}}.",
+  "repos": {}
+}

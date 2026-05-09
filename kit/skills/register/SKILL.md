@@ -22,6 +22,73 @@ when a company is bootstrapping their orchestrator. For onboarding a
 collaborator onto an already-configured instance (clone everything
 already in the manifest in one shot), use `bin/setup` instead.
 
+## Implementation
+
+This skill is a **thin wrapper** around
+[`bin/register`](../../../bin/register). The script does all
+mechanical work:
+
+- Verifies remote URL reachability (`git ls-remote`)
+- Detects default branch (`git ls-remote --symref HEAD`)
+- Queries `gh api` for kit-enabled status (presence of
+  `.claude/foundation.json` on remote — **remote truth**, not
+  local clone)
+- Writes `state/repos.json` (central per-repo config) via
+  `bin/repo-config add`
+- Appends entry to `state/manifest.md`
+- Creates `state/sub-repos/<name>.md` from template
+- Clones into `repos/<name>/`
+- Optionally stages `<sub>/.claude/shared/` files for scaffold
+
+The skill's responsibilities:
+
+- **Gather inputs** via interactive Q&A (name override, role,
+  scaffold preference). Defaults are reasonable; the script
+  derives `name` from URL if not given.
+- **Apply preferences** — check
+  `state/preferences.md` via `bin/preferences-check resolve` for
+  `auto-scaffold-shared-on-register` and
+  `auto-install-kit-on-non-kit-register`. Apply silently with
+  disclosure if set; otherwise ask the user.
+- **Open the scaffold PR** — if the user accepts (or preference
+  applied), invoke `bin/open-orch-pr --repo <name>
+  --branch orch-init-shared --title "scaffold .claude/shared/"
+  --body-file <body.md>` after `bin/register --scaffold-shared`
+  has staged the files.
+- **Log the decision** — invoke `bin/preferences-check log` after
+  the user answers the scaffold prompt, then check
+  `should_offer` and prompt for capture if eligible.
+- **Display the result** to the user (PR URL, what was created,
+  next-move suggestions).
+
+### Invocation
+
+```sh
+bin/register --remote "$URL" \
+  --name "$NAME" \
+  --role "$ROLE" \
+  [--scaffold-shared] \
+  [--no-clone] \
+  --json
+```
+
+Output (JSON when `--json`):
+
+```json
+{
+  "ok": true,
+  "name": "api",
+  "remote": "git@github.com:org/api.git",
+  "default_branch": "main",
+  "kit_enabled": true,
+  "cloned": "true",
+  "shared_scaffolded": "staged",
+  "message": "registered api (...) → repos/api/"
+}
+```
+
+Skills consume this JSON to render the user-facing summary.
+
 ## Behavior contract
 
 - **Verify the git remote is reachable.** `git ls-remote <url>` —

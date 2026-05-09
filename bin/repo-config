@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+#
+# bin/repo-config — read/write the central per-repo configuration at
+#                   state/repos.json. Source of truth for registered
+#                   sub-repos.
+#
+# Output: JSON on stdout for read ops; status messages for writes.
+#
+# Subcommands:
+#   list [--json]                          # list repo names; --json full dump
+#   exists <name>                          # exit 0 registered, 1 not
+#   get <name>                             # full JSON entry for one repo
+#   get <name> <field>                     # single field value (raw)
+#   add <name> --remote URL [args...]      # register a new repo
+#   set <name> <field> <value>             # update one field
+#   remove <name> [--force]                # delete entry (asks unless --force)
+#
+# Fields supported on add/set:
+#   --remote URL              git_remote (required for add)
+#   --role ROLE               role (api|ios|web|devops|other)
+#   --default-branch BRANCH   default_branch
+#   --kit-enabled true|false  kit_enabled
+#   --kit-version SHA         kit_version (foundation.json pinned_sha)
+#   <field> <value>           generic set (any field name)
+#
+# This script is the single entry point for scripts and skills that
+# need to read or write per-repo state. Don't hand-edit
+# state/repos.json — use these subcommands so the schema stays
+# consistent.
+
+set -euo pipefail
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG="$ORCH_ROOT/state/repos.json"
+
+# ---- Python helpers (bash → JSON via python3) -------------------------------
+
+# Run a python snippet against the config; CONFIG path injected.
+py() {
+  python3 -c "
+import json, os, sys
+config_path = '$CONFIG'
+def load():
+    with open(config_path) as f: return json.load(f)
+def save(data):
+    with open(config_path, 'w') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
+
+$1
+"
+}
+
+ensure_config() {
+  if [ ! -f "$CONFIG" ]; then
+    mkdir -p "$(dirname "$CONFIG")"
+    cat > "$CONFIG" <<'EOF'
+{
+  "schema_version": 1,
+  "repos": {}
+}
+EOF
+  fi
+}
+
+# ---- subcommands ------------------------------------------------------------
+
+cmd_list() {
+  ensure_config
+  local json_mode=0
+  for arg in "$@"; do
+    [ "$arg" = "--json" ] && json_mode=1
+  done
+
+  if [ "$json_mode" -eq 1 ]; then
+    py "print(json.dumps(load(), indent=2))"
+  else
+    py "
+data = load()
+names = sorted(data.get('repos', {}).keys())
+for n in names:
+    repo = data['repos'][n]
+    role = repo.get('role', '?')
+    branch = repo.get('default_branch', '?')
+    kit = repo.get('kit_enabled')
+    kit_str = 'kit' if kit is True else ('non-kit' if kit is False else 'kit:?')
+    print(f'  {n:<14} {role:<10} {branch:<10} {kit_str}')
+if not names:
+    print('  (no repos registered)')
+"
+  fi
+}
+
+cmd_exists() {
+  ensure_config
+  local name="${1:-}"
+  [ -z "$name" ] && { echo "usage: repo-config exists <name>" >&2; exit 2; }
+  py "
+data = load()
+sys.exit(0 if '$name' in data.get('repos', {}) else 1)
+"
+}
+
+cmd_get() {
+  ensure_config
+  local name="${1:-}"
+  local field="${2:-}"
+  [ -z "$name" ] && { echo "usage: repo-config get <name> [<field>]" >&2; exit 2; }
+
+  if [ -z "$field" ]; then
+    py "
+data = load()
+repo = data.get('repos', {}).get('$name')
+if repo is None:
+    print(json.dumps({'error': 'not registered: $name'}))
+    sys.exit(1)
+print(json.dumps(repo, indent=2))
+"
+  else
+    py "
+data = load()
+repo = data.get('repos', {}).get('$name')
+if repo is None:
+    sys.exit(1)
+val = repo.get('$field')
+if val is None:
+    sys.exit(1)
+if isinstance(val, (dict, list)):
+    print(json.dumps(val))
+else:
+    print(val)
+"
+  fi
+}
+
+cmd_add() {
+  ensure_config
+  local name="${1:-}"; shift || true
+  [ -z "$name" ] && { echo "usage: repo-config add <name> --remote URL [args]" >&2; exit 2; }
+
+  local remote="" role="other" default_branch="main" kit_enabled=""
+  local kit_version=""
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --remote) remote="$2"; shift 2 ;;
+      --role) role="$2"; shift 2 ;;
+      --default-branch) default_branch="$2"; shift 2 ;;
+      --kit-enabled) kit_enabled="$2"; shift 2 ;;
+      --kit-version) kit_version="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  [ -z "$remote" ] && { echo "add: --remote URL is required" >&2; exit 2; }
+
+  local today
+  today="$(date -u +'%Y-%m-%d')"
+
+  py "
+data = load()
+if '$name' in data.get('repos', {}):
+    print(json.dumps({'error': 'already registered: $name'}))
+    sys.exit(1)
+
+repos = data.setdefault('repos', {})
+ke_str = '$kit_enabled'
+ke_val = None
+if ke_str.lower() == 'true': ke_val = True
+elif ke_str.lower() == 'false': ke_val = False
+
+repos['$name'] = {
+    'git_remote': '$remote',
+    'role': '$role',
+    'default_branch': '$default_branch',
+    'registered_at': '$today',
+    'kit_enabled': ke_val,
+    'kit_version': '$kit_version' or None,
+    'kit_install_offered_at': None,
+    'kit_install_declined_at': None,
+    'last_synced_head': None,
+    'last_synced_at': None,
+    'last_pulled_at': None
+}
+# keep repos object alphabetically sorted on each write
+data['repos'] = dict(sorted(repos.items()))
+save(data)
+print(json.dumps({'added': '$name', 'entry': data['repos']['$name']}, indent=2))
+"
+}
+
+cmd_set() {
+  ensure_config
+  local name="${1:-}" field="${2:-}" value="${3:-}"
+  [ -z "$name" ] || [ -z "$field" ] && { echo "usage: repo-config set <name> <field> <value>" >&2; exit 2; }
+
+  py "
+data = load()
+repo = data.get('repos', {}).get('$name')
+if repo is None:
+    print(json.dumps({'error': 'not registered: $name'}))
+    sys.exit(1)
+
+# Coerce booleans + null
+v = '''$value'''
+if v.lower() == 'true': v = True
+elif v.lower() == 'false': v = False
+elif v.lower() == 'null': v = None
+
+repo['$field'] = v
+save(data)
+print(json.dumps({'set': {'name': '$name', 'field': '$field', 'value': v}}))
+"
+}
+
+cmd_remove() {
+  ensure_config
+  local name="${1:-}"; shift || true
+  local force=0
+  for arg in "$@"; do
+    [ "$arg" = "--force" ] && force=1
+  done
+
+  [ -z "$name" ] && { echo "usage: repo-config remove <name> [--force]" >&2; exit 2; }
+
+  if [ "$force" -ne 1 ]; then
+    echo "About to remove $name from $CONFIG."
+    echo "Repo's local clone at repos/$name/ is NOT touched."
+    echo "Re-run with --force to confirm."
+    exit 1
+  fi
+
+  py "
+data = load()
+if '$name' not in data.get('repos', {}):
+    print(json.dumps({'error': 'not registered: $name'}))
+    sys.exit(1)
+removed = data['repos'].pop('$name')
+save(data)
+print(json.dumps({'removed': '$name', 'was': removed}, indent=2))
+"
+}
+
+# ---- dispatch ---------------------------------------------------------------
+
+case "${1:-}" in
+  list) shift; cmd_list "$@" ;;
+  exists) shift; cmd_exists "$@" ;;
+  get) shift; cmd_get "$@" ;;
+  add) shift; cmd_add "$@" ;;
+  set) shift; cmd_set "$@" ;;
+  remove) shift; cmd_remove "$@" ;;
+  -h|--help|"")
+    grep '^#' "$0" | head -28 | sed 's/^# \?//'
+    exit 0
+    ;;
+  *)
+    echo "unknown subcommand: $1" >&2
+    echo "supported: list, exists, get, add, set, remove" >&2
+    exit 2
+    ;;
+esac
