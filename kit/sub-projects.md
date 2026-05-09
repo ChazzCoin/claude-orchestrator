@@ -367,16 +367,24 @@ its own work — bidirectional context flow.
 The orchestrator has direct git authority over registered
 sub-repos when making changes. Discipline:
 
-### Pulling
+### Fetching
 
-- **On `/sync-check`** — for each registered sub-repo, `git fetch`.
-  If `git status` shows uncommitted changes, **don't pull** — note
-  it and continue. Compare local HEAD to upstream HEAD; record in
-  the per-sub-repo state file.
-- **Before any orchestrator write** — fetch + verify clean working
-  tree. If dirty, abort the write with: "<sub-repo> has uncommitted
-  changes; commit, stash, or revert before I make orchestrator
-  changes there." User unblocks; orchestrator retries.
+- **`/refresh` is the canonical fetch.** Iterates the manifest,
+  runs `git fetch origin` against every cloned sub-repo, records
+  per-repo ahead/behind + dirty flags, writes `state/last-fetch.json`
+  with a timestamp. Read-only against remotes; never auto-pulls.
+- **Session-start staleness check.** Per
+  `orchestrator-rules.md`, the orchestrator checks
+  `state/last-fetch.json` on session start. >24h or missing → warn
+  and suggest `/refresh` before compiler skills run.
+- **Before any orchestrator write** — fetch the target sub-repo +
+  verify a clean working tree. If dirty, abort the write with:
+  "<sub-repo> has uncommitted changes; commit, stash, or revert
+  before I make orchestrator changes there." User unblocks;
+  orchestrator retries.
+- **Pulls are not orchestrator work.** If a sub-repo is behind
+  `origin/main`, the user pulls it themselves. The orchestrator
+  surfaces the drift but doesn't fast-forward working trees.
 
 ### Branching
 

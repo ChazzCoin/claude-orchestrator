@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -38,7 +38,7 @@
         "from": "kit/sub-project-registration.md",
         "to": ".claude/sub-project-registration.md",
         "policy": "file-replace",
-        "note": "Registration workflow doc — sibling layout, three input cases, clone target convention, anti-patterns. Generic across instances."
+        "note": "Registration discipline + the /register and bin/setup flows. Workspace-internal model (sub-repos clone into repos/<name>/), mobile fallback, edge cases, anti-patterns. Generic across instances."
       },
       {
         "from": "kit/state/sub-repos/_template.md",
@@ -119,6 +119,9 @@
     "files": [
       { "from": "bootstrap/CLAUDE.md.template",                     "to": "CLAUDE.md",                  "policy": "skip-if-exists" },
       { "from": "bootstrap/README.md.template",                     "to": "README.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/company-profile.md.template",            "to": "company-profile.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/company-notes.md.template",              "to": "company-notes.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/events.md.template",                     "to": "events.md",                  "policy": "skip-if-exists" },
       { "from": "bootstrap/roadmap.md.template",                    "to": "roadmap.md",                 "policy": "skip-if-exists" },
       { "from": "bootstrap/open-questions.md.template",             "to": "open-questions.md",          "policy": "skip-if-exists" },
       { "from": "bootstrap/platform-constraints.md.template",       "to": "platform-constraints.md",    "policy": "skip-if-exists" },
@@ -165,6 +168,7 @@
       "reviews/monthly",
       "reviews/quarterly",
       "state/sub-repos",
+      "state/inbox",
       "pr-reviews"
     ]
   }

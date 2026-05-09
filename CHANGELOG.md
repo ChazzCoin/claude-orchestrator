@@ -1,5 +1,146 @@
 # Changelog
 
+## 0.8.0 — 2026-05-08
+
+Two big shifts in this release:
+
+1. **Workspace-internal sub-repo model.** The orchestrator now owns
+   its own checkouts under `repos/<name>/` rather than referencing
+   external clones. Single mode, convention not configuration —
+   sub-repos always live at `<orchestrator-root>/repos/<name>/`.
+2. **Compilation primitives.** `/status` becomes a full cross-repo
+   compiler. `/refresh`, `/inbox`, `/roadmap`, `/tasks` are new
+   skills layered on top.
+
+The two ship together because every compiler skill assumes
+`repos/<name>/` is the canonical local view. The earlier
+"register-where-they-live" model didn't work for multi-machine,
+mobile, or fresh-collaborator flows. This release picks the simpler
+answer: the orchestrator IS the workspace; sub-repos clone into it.
+
+### Workspace-internal model
+
+- `bootstrap/state/manifest.md.template` — drop "Local path" field
+  from format spec, all entries, commented template; layout diagram
+  rewritten for `repos/<name>/`; updated kit-enabled detection prose.
+- `kit/state/sub-repos/_template.md` — drop `local_path` from
+  frontmatter.
+- `kit/sub-project-registration.md` — full rewrite. Single-mode,
+  `/register` (per-repo, deliberate) + `bin/setup` (bulk, automatic)
+  flows, mobile-fallback, edge cases, anti-patterns updated.
+- `kit/sub-projects.md` — Registration headline rules rewritten;
+  Git management → Fetching subsection introduces `/refresh` and
+  session-start staleness.
+- `kit/skills/register/SKILL.md` — full rewrite. Asks for
+  `git_remote` instead of local path; verifies via `git ls-remote`;
+  clones into `repos/<name>/` as the final step.
+- `kit/skills/sync-check/SKILL.md` — uses `repos/<name>/`
+  convention; remote-only fallback for machines without local
+  clones; surfaces stale-fetch warnings.
+- `kit/skills/migration/SKILL.md` — references
+  `repos/<name>/.claude/active-migrations.md`; flags missing local
+  clones for user resolution.
+
+### New script: `bin/setup`
+
+- Bulk-clones every registered sub-repo into `repos/<name>/`.
+- Idempotent (skips already-cloned, flags collisions).
+- Best-effort (reports per-repo failures without aborting).
+- Prompts once for identity (`me`, `machine_id`) on first run if
+  `.claude/local-config.json` is missing — otherwise silent.
+- Mobile / remote-only environments skip it entirely; read-side
+  skills fall back to `gh api` against the manifest's `git_remote`.
+
+### Identity config
+
+- `.claude/local-config.json` (NEW, gitignored) — per-machine
+  config: `me`, `machine_id`, `inbox_last_read`. Set during
+  `bin/setup` first run.
+
+### New skills
+
+- **`/refresh`** — fetches `origin` for every cloned sub-repo,
+  records ahead/behind/dirty per repo, writes
+  `state/last-fetch.json` so other skills know how stale the data
+  is. Read-only against remotes; never auto-pulls. Working trees
+  untouched.
+- **`/inbox`** — per-person messaging. Send (writes to
+  `state/inbox/<recipient>.md`, committed via git); read your own
+  unread (filtered by per-machine `inbox_last_read`); list sent;
+  list inboxes. Delivery is the recipient's next `git pull`.
+- **`/roadmap`** — compiles cross-sub-project roadmaps into
+  `state/roadmap-compiled.md`. Phase-based view showing what each
+  team is planning side-by-side. Sources (priority): claude-kit's
+  `tasks/ROADMAP.md`, top-level `ROADMAP.md`, README "Roadmap"
+  section. Surfaces alignment / misalignment in chat summary.
+- **`/tasks`** — compiles active-task state from each sub-repo
+  into `state/tasks-compiled.md`. Active scope only (in-progress +
+  next up; backlogs excluded). Flags stale tasks (≥7 days no
+  commit on branch).
+
+### Rewritten skill: `/status`
+
+The load-bearing daily-driver compiler. Reads:
+
+- Inbox unread count + headlines (for current user)
+- Roadmap "Now" + "Recently shipped"
+- Upcoming events (next 14 days)
+- Active migrations with stale flags
+- Open questions tagged Blocking
+- Per-sub-repo state (branch / ahead / behind / dirty / sub-kit
+  advertisement / open PRs) — from cached `state/last-fetch.json`
+  and `state/sync-status.md`
+- Drift (commits / branches not tied to any active migration)
+
+No `gh` calls, no `git fetch` — pure compile from on-disk state.
+Surfaces stale-fetch warnings when data is >24h.
+
+### New bootstrap templates (instance-owned, skip-if-exists)
+
+- `bootstrap/company-profile.md.template` — structured: mission,
+  products, leadership, mottos, strategic direction.
+- `bootstrap/company-notes.md.template` — freeform pad for
+  half-formed thoughts, internal discussions, potential directions.
+- `bootstrap/events.md.template` — Upcoming + Past sections for
+  conferences, demos, meetings, launches.
+
+### Other updates
+
+- `kit/orchestrator-rules.md` — session-start checks list adds
+  `state/last-fetch.json` with the 24h staleness rule.
+- `bin/init`:
+  - Gitignore heredoc adds `repos/`, `.claude/local-config.json`,
+    `state/last-fetch.json`, `state/roadmap-compiled.md`,
+    `state/tasks-compiled.md`.
+  - Scaffold list adds `state/inbox`.
+  - New `bootstrap_copy` entries for company-profile, company-notes,
+    events.
+  - Copies `bin/setup` into instances (with `chmod +x`).
+- `MANIFEST.json` — adds sync entries for `bin/setup`,
+  company-profile, company-notes, events; adds `state/inbox` to
+  scaffold.
+- `README.md` — tree shows `bin/setup`; new Instance layout and
+  Onboarding a collaborator sections.
+
+### Migration notes for existing instances
+
+Existing instances that pre-date this release register sub-repos at
+external absolute paths. To migrate:
+
+1. `/sync` to bring kit changes downstream.
+2. Strip `Local path:` lines from `state/manifest.md` and
+   `local_path:` from `state/sub-repos/<name>.md` frontmatter.
+3. Add `repos/`, `.claude/local-config.json`, and the new
+   generated-state files to `.gitignore`.
+4. Run `bin/setup` to clone registered sub-repos into
+   `repos/<name>/`. First run prompts for identity.
+
+Or simpler: re-bootstrap. The orchestrator's data (decisions,
+migrations, ADRs, etc.) lives in committed bootstrap files; a fresh
+`bin/init` preserves them and just updates kit machinery. Existing
+external sub-repo checkouts can be kept as personal working copies —
+the orchestrator no longer references them.
+
 ## 0.7.0 — 2026-05-08
 
 Codify the sub-project registration workflow. Answers the

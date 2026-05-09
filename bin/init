@@ -161,6 +161,9 @@ bootstrap_copy() {
 
 bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"                     "$TARGET/CLAUDE.md"                  "CLAUDE.md"
 bootstrap_copy "$KIT_DIR/bootstrap/README.md.template"                     "$TARGET/README.md"                  "README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/company-profile.md.template"            "$TARGET/company-profile.md"         "company-profile.md"
+bootstrap_copy "$KIT_DIR/bootstrap/company-notes.md.template"              "$TARGET/company-notes.md"           "company-notes.md"
+bootstrap_copy "$KIT_DIR/bootstrap/events.md.template"                     "$TARGET/events.md"                  "events.md"
 bootstrap_copy "$KIT_DIR/bootstrap/roadmap.md.template"                    "$TARGET/roadmap.md"                 "roadmap.md"
 bootstrap_copy "$KIT_DIR/bootstrap/open-questions.md.template"             "$TARGET/open-questions.md"          "open-questions.md"
 bootstrap_copy "$KIT_DIR/bootstrap/platform-constraints.md.template"       "$TARGET/platform-constraints.md"    "platform-constraints.md"
@@ -236,6 +239,7 @@ scaffold_dir "reviews/weekly"      "reviews/weekly"
 scaffold_dir "reviews/monthly"     "reviews/monthly"
 scaffold_dir "reviews/quarterly"   "reviews/quarterly"
 scaffold_dir "state/sub-repos"     "state/sub-repos"
+scaffold_dir "state/inbox"         "state/inbox"
 scaffold_dir "pr-reviews"          "pr-reviews"
 
 # --- 5. .gitignore ---------------------------------------------------
@@ -255,14 +259,20 @@ if [ ! -f "$TARGET/.gitignore" ]; then
 .claude/settings.local.json
 .claude/worktrees/
 
+# Per-machine identity + read-state config (set by bin/setup).
+.claude/local-config.json
+
 # Bootstrap-cloned sub-repos (managed by bin/setup).
 # Each subdir has its own .git — never tracked by the orchestrator.
 repos/
 
-# Generated state (regenerated on demand)
+# Generated state (regenerated on demand, machine-specific)
 state/sync-status.md
 state/audit-progress.md
 state/brief-cache.md
+state/last-fetch.json
+state/roadmap-compiled.md
+state/tasks-compiled.md
 EOF
   echo "    create:  .gitignore"
 fi

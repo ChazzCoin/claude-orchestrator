@@ -25,11 +25,51 @@ ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MANIFEST="$ORCH_ROOT/state/manifest.md"
 REPOS_DIR="$ORCH_ROOT/repos"
 GITIGNORE="$ORCH_ROOT/.gitignore"
+LOCAL_CONFIG="$ORCH_ROOT/.claude/local-config.json"
 
 if [ ! -f "$MANIFEST" ]; then
   echo "no manifest found at $MANIFEST"
   echo "is this an orchestrator instance? Run bin/init first."
   exit 1
+fi
+
+# --- Identity check (one-time per machine) ---------------------------
+#
+# local-config.json is gitignored. Each user / machine sets its own
+# 'me' handle so /inbox messaging knows who's asking.
+
+if [ ! -f "$LOCAL_CONFIG" ]; then
+  echo "First time on this machine. Quick identity setup."
+  echo "  Used by /inbox messaging so messages can be addressed to you."
+  echo
+
+  DEFAULT_HANDLE="$(git config user.name 2>/dev/null | tr 'A-Z ' 'a-z-' | head -c 32)"
+  if [ -n "$DEFAULT_HANDLE" ]; then
+    read -p "  Your handle (one word) [$DEFAULT_HANDLE]: " ME
+    ME="${ME:-$DEFAULT_HANDLE}"
+  else
+    read -p "  Your handle (one word): " ME
+    while [ -z "$ME" ]; do
+      read -p "  (required) Your handle (one word): " ME
+    done
+  fi
+
+  DEFAULT_MACHINE="$(hostname -s 2>/dev/null || echo "unknown")"
+  read -p "  This machine's name [$DEFAULT_MACHINE]: " MACHINE_ID
+  MACHINE_ID="${MACHINE_ID:-$DEFAULT_MACHINE}"
+
+  mkdir -p "$ORCH_ROOT/.claude"
+  cat > "$LOCAL_CONFIG" <<EOF
+{
+  "schema_version": 1,
+  "me": "$ME",
+  "machine_id": "$MACHINE_ID",
+  "inbox_last_read": null
+}
+EOF
+  echo
+  echo "  saved: .claude/local-config.json (gitignored, per-machine)"
+  echo
 fi
 
 # Hygiene check: warn if repos/ is not gitignored.

@@ -21,6 +21,10 @@ This skill **regenerates** state. It does not author anything new.
   migration tracks is a signal — note it explicitly.
 - **Note query failures honestly.** If `gh` isn't authenticated or a
   repo can't be reached, say so; don't write fake state.
+- **Surface stale-fetch warning.** Read `state/last-fetch.json` at
+  the start. If missing or >24h old, prepend a warning to the
+  output: "Last refresh: <duration> ago — consider `/refresh` for
+  fresh sub-repo state." Don't refuse to run.
 - **Handle remote-only mode gracefully.** Sub-repos live at
   `repos/<name>/` by convention. If that directory doesn't exist on
   this machine (e.g. mobile, or before `bin/setup` ran), fall back
