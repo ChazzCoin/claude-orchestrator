@@ -1,0 +1,50 @@
+# Operating preferences
+
+> What this orchestrator has learned about how the CTO wants to
+> work. Each entry is a recurring decision the orchestrator no
+> longer asks about. Read by skills before they hit a known fork;
+> updated by `/preferences` or by direct edit.
+>
+> **Discipline doc:** `.claude/preferences.md` (synced from kit).
+> **Owning skill:** `/preferences`.
+
+The format below is regenerated and sorted alphabetically by ID
+when `/preferences` writes. Hand edits are preserved as long as
+the per-entry shape is followed.
+
+---
+
+## Active preferences
+
+<!--
+  Each active preference entry has this exact shape:
+
+  ### <preference-id>
+
+  - **Decision:** <yes | no | <short value>>
+  - **Scope:** <global | per-sub-repo: <name> | other>
+  - **Tier:** <low-risk | high-risk>
+  - **Set:** <YYYY-MM-DD> by <handle>
+  - **Evidence:** <verbatim quote of user signal, or description>
+  - **Revoke:** `/preferences revoke <id>`
+
+  Sorted alphabetically by ID. Empty section is the bootstrap state.
+-->
+
+*(none yet — preferences accumulate as the CTO sets them)*
+
+---
+
+## Revoked preferences
+
+<!--
+  Revocation is logged here, not deleted. One entry per revocation:
+
+  ### <preference-id> *(revoked)*
+
+  - **Was:** <decision> (set <YYYY-MM-DD> by <handle>)
+  - **Revoked:** <YYYY-MM-DD> by <handle>
+  - **Reason:** <one line, optional>
+-->
+
+*(none)*

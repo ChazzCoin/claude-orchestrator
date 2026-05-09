@@ -409,3 +409,24 @@ reason it's deferred — that itself is a durable artifact.
 Ask one question rather than building the wrong artifact. The cost
 of one round trip is small; the cost of a misfiled ADR or
 prematurely-opened migration is weeks of confused references.
+
+## When *not* in doubt
+
+The dual rule, and equally important:
+
+When the same question has already been answered the same way and
+the CTO has explicitly said "always do this," **don't ask again** —
+act, surface that you're acting on a remembered preference, and
+move on. Recurring questions with no information value are a
+friction tax this orchestrator should not impose.
+
+Operating preferences are documented in
+[`preferences.md`](preferences.md). They live at
+`state/preferences.md` per instance. Skills check that file before
+hitting any fork the user has settled. Capture is **explicit only**
+in v1 (no silent inference); application is **disclosed on first
+apply per session** so the CTO can audit. High-risk preferences
+are surfaced in `/status` continuously.
+
+User-facing skill: [`/preferences`](skills/preferences/SKILL.md).
+Inspect, set, revoke.
