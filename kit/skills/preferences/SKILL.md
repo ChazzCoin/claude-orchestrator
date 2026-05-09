@@ -1,6 +1,6 @@
 ---
 name: preferences
-description: Inspect, set, or revoke operating preferences — recurring decisions the orchestrator has learned and no longer asks about. Triggered by "/preferences", "/prefs", "what have you remembered", "show my preferences", "stop asking me about X", "always do X", "from now on X", "remember to X", "forget the preference about X", "revoke preference X".
+description: Inspect, set, or revoke operating preferences — recurring decisions the orchestrator has learned and no longer asks about — and inspect the decision log (running tally of answers at known forks that informs auto-offer-to-capture). Triggered by "/preferences", "/prefs", "what have you remembered", "show my preferences", "show my tallies", "what's my tally on X", "stop asking me about X", "always do X", "from now on X", "remember to X", "forget the preference about X", "revoke preference X", "clear the log for X".
 ---
 
 # /preferences — Operating preferences
@@ -25,30 +25,56 @@ on `set` and `revoke` confirmation.
 Detect from user input:
 
 - **List** — "/preferences", "what have you remembered", "show my
-  preferences" → enumerate all active preferences (and optionally
-  revoked).
-- **Show** — "/preferences show `<id>`", "tell me about preference X"
-  → show one preference's full entry including evidence.
+  preferences" → enumerate active preferences AND the decision log
+  (forks that have been asked but not yet captured, with their
+  current tally).
+- **Show** — "/preferences show `<id>`", "tell me about preference X",
+  "what's my tally on X" → show one preference's full entry with
+  evidence, OR if no preference exists, the decision log's history
+  for that fork.
 - **Set** — "always do X", "from now on X", "stop asking about X",
   "remember this", "/preferences set `<id>` `<value>`" → record
-  a preference.
+  a preference. Path 1 of the capture protocol (explicit signal).
 - **Revoke** — "stop auto-X", "forget the preference about X",
-  "/preferences revoke `<id>`" → revoke a preference.
+  "/preferences revoke `<id>`" → revoke a preference. The fork
+  resumes accumulating in the decision log.
+- **Clear-log** — "/preferences clear-log `<id>`", "clear the log
+  for X", "reset the tally on X" → wipe the active history for one
+  fork in the decision log (cooldowns reset, streak resets to 0).
+  Useful when the tally has gone stale or a recent decision was an
+  outlier.
 
 If ambiguous, ask which.
 
+The auto-offer-to-capture flow (Path 2 of the capture protocol) is
+**not** a mode of this skill — it's implemented by the asking
+skills (`/register`, `/feature`, `/migration`, etc.) right after
+they get an answer to a known-fork question. See the discipline
+doc at [`.claude/preferences.md`](../../preferences.md) "Decision
+log discipline" for the recipe each asking skill follows.
+
 ---
 
-## File location and format
+## Files
 
-Active preferences live at `state/preferences.md`. Format
-documented in [`.claude/preferences.md`](../../preferences.md)
-"What a preference is" + the template at
-`bootstrap/preferences.md.template`.
+Two files this skill reads, both per-instance state:
 
-This skill is the **only** thing that should write to that file.
-Hand edits are tolerated but the file is rewritten alphabetically
-on each skill write.
+- **`state/preferences.md`** — captured preferences. This skill is
+  the only thing that writes to it. Format spec in
+  [`.claude/preferences.md`](../../preferences.md) "What a
+  preference is" + template at
+  `bootstrap/preferences.md.template`.
+- **`state/decision-log.md`** — running tally of decisions at
+  known forks. This skill reads + prunes (when a preference is
+  captured, the fork's section moves from Active to Captured
+  archive). Asking skills append entries directly per the format
+  in `bootstrap/decision-log.md.template` and the discipline at
+  [`.claude/preferences.md`](../../preferences.md) "Decision log
+  discipline."
+
+Both files are committed (per-instance state, not gitignored).
+Hand edits are tolerated but discouraged — the format is
+machine-readable and skills overwrite on subsequent writes.
 
 ---
 
@@ -56,36 +82,49 @@ on each skill write.
 
 ### Process
 
-1. Read `state/preferences.md`. If absent, surface "no preferences
-   yet — the orchestrator hasn't learned anything to skip" and
-   stop.
-2. Parse `## Active preferences` section into entries.
-3. Render compact:
+1. Read `state/preferences.md` and `state/decision-log.md`. Either
+   may be absent (fresh instance); both absent → "no preferences
+   captured and no decisions logged yet."
+2. Parse:
+   - Preferences: `## Active preferences` and (if asked)
+     `## Revoked preferences`.
+   - Decision log: `## Active` (forks not yet captured) and (if
+     asked) `## Captured (archive)`.
+3. Render in two sections — captured first, tracked-but-not-captured
+   second. The second is the "almost there" view; the user can see
+   what's accumulating toward auto-offer.
 
    ```
-   active preferences (N):
+   captured preferences (N):
 
-     auto-scaffold-shared-on-register   yes  · low-risk    · 2026-05-08 chazz
-     auto-install-kit-on-non-kit-register yes · low-risk    · 2026-05-08 chazz
-     auto-merge-orch-prs                no   · high-risk   · 2026-05-09 chazz
+     auto-scaffold-shared-on-register   yes  · low-risk   · 2026-05-08 chazz
+     auto-install-kit-on-non-kit-register yes · low-risk   · 2026-05-08 chazz
+     auto-merge-orch-prs                no   · high-risk  · 2026-05-09 chazz
+
+   tracked decisions (M, not yet captured):
+
+     auto-write-active-features-notices    yes 4 / no 0 (streak: 4 yes) — 1 more for auto-offer
+     auto-push-orch-branches               yes 2 / no 1 (streak: 2 yes) — high-risk, no auto-offer
+     auto-write-active-migrations-notices  yes 1 / no 0 (streak: 1 yes) — needs 2 more
 
    high-risk preferences are also surfaced in /status.
    revoke any with: /preferences revoke <id>
+   clear a tally with: /preferences clear-log <id>
    ```
 
-4. If user asked for revoked too ("/preferences list all" or "show
-   revoked"), parse the revoked section and append:
-
-   ```
-   revoked (N):
-     auto-push-orch-branches  was: yes  · revoked 2026-05-10 chazz · "too risky"
-   ```
+4. If user asked for revoked / archive too ("/preferences list
+   all"), append the revoked-preferences and captured-archive
+   sections.
 
 ### Style
 
-- One line per preference. ID, decision, tier, set date, who.
+- One line per item.
 - Tier shown explicitly so high-risk is visible at a glance.
-- Don't show evidence or full body in list mode — that's `show`.
+- Decision-log entries show the gap to next auto-offer when
+  applicable ("1 more for auto-offer"); for high-risk forks,
+  state "no auto-offer" so the user knows why the streak isn't
+  triggering anything.
+- Don't show evidence or full history in list mode — that's `show`.
 
 ---
 
@@ -97,11 +136,23 @@ on each skill write.
    match against the known IDs from
    [`.claude/preferences.md`](../../preferences.md) "Known
    preferences" table; if ambiguous, list candidates.
-2. Read the full entry from `state/preferences.md`.
-3. Render the full entry: id, decision, scope, tier, set, evidence
-   verbatim, revoke command.
-4. If the preference is **stale** (set >180 days ago), flag it and
-   suggest re-confirm or revoke.
+2. Look in **`state/preferences.md`** first.
+   - If found → render the full preference entry: id, decision,
+     scope, tier, set, evidence verbatim, revoke command. If the
+     preference is **stale** (set >180 days ago), flag and suggest
+     re-confirm or revoke.
+   - If found, also check `state/decision-log.md` "Captured
+     (archive)" for the fork's pre-capture history and surface a
+     summary line ("captured after streak of 5 yes; full history
+     in archive").
+3. If not in preferences, look in **`state/decision-log.md`** "Active":
+   - If found → render the fork's tally header + the full History
+     list. Surface the auto-offer status: "next offer at streak 3
+     (currently 2)" or "in cooldown: 3 decisions remaining" or
+     "high-risk — no auto-offer regardless of streak."
+   - If not found → "no preference captured and no decisions
+     logged for `<id>`. The orchestrator will ask normally next
+     time it hits this fork."
 
 ---
 
@@ -195,7 +246,8 @@ on each skill write.
 3. Confirm:
 
    > "Revoke `<id>`? It moves to the Revoked section; the
-   > orchestrator will start asking again. [yes / no]"
+   > orchestrator will start asking again. The decision log will
+   > resume accumulating from the next answer. [yes / no]"
 
 4. Optionally ask for a one-line reason (helpful future audit).
 5. On confirm, in `state/preferences.md`:
@@ -210,7 +262,47 @@ on each skill write.
      - **Reason:** <one line or omitted>
      ```
 
-6. Tell the user. Show the revoked entry.
+6. In `state/decision-log.md`:
+   - Move the fork's entry from `## Captured (archive)` back to
+     `## Active`, but with a fresh empty `### History` list. The
+     archive entry is preserved.
+   - Aggregate header reset: tally 0/0, streak 0, last asked
+     "never since revoke," last offer "never since revoke."
+
+7. Tell the user. Show the revoked preference entry and confirm
+   the log is reset.
+
+---
+
+## Mode: Clear-log
+
+### Behavior contract
+
+- **Affects only the decision log, not preferences.** Use when a
+  fork's tally has gone stale or a recent batch of decisions
+  shouldn't influence future offers.
+- **Confirm before clearing.** Reversible only by re-accumulating
+  history; the cleared entries are not preserved.
+
+### Process
+
+1. Identify the `<id>`. If absent in the log, tell the user
+   nothing's tracked for it and stop.
+2. Read the fork's section in `state/decision-log.md` "Active." Show
+   the current tally + recent History.
+3. Confirm:
+
+   > "Clear the decision log for `<id>`? Tally resets to 0/0,
+   > streak resets, cooldowns reset. Preferences are not affected.
+   > [yes / no]"
+
+4. On confirm:
+   - Remove the History entries.
+   - Reset the aggregate header.
+   - Optionally append a one-line audit comment to the section
+     body: `*Cleared <YYYY-MM-DD> by <handle>: <reason>*`.
+
+5. Tell the user. Show the cleared section.
 
 ---
 
@@ -231,20 +323,28 @@ on each skill write.
 
 ## What you must NOT do
 
-- **Don't infer preferences from repeated yes-answers.** v1 captures
-  only on explicit signal. Adding inference-based capture is a v2
-  decision.
 - **Don't capture preferences for `never-suppressible` IDs.** Even
   if the user insists. Explain why and stop.
+- **Don't auto-capture from the decision log without an offer.**
+  The auto-offer flow (Path 2) requires an explicit user yes per
+  offer. The threshold is the trigger to *ask*, not to silently
+  capture.
+- **Don't auto-offer for high-risk forks.** Regardless of streak
+  length. High-risk preferences require explicit
+  `/preferences set` invocation.
 - **Don't apply a remembered preference inside this skill.** This
-  skill manages preferences; it doesn't act on them. Other skills
-  read `state/preferences.md` and apply.
+  skill manages preferences and the decision log; it doesn't act
+  on them. Other skills read `state/preferences.md`,
+  `state/decision-log.md` and apply.
 - **Don't auto-commit.** The user reviews and commits.
 - **Don't write evidence as a paraphrase.** Quote the user. If you
   can't quote (e.g. the trigger was a `/preferences set` invocation),
   record the invocation as the evidence.
 - **Don't fabricate IDs.** If the user's request doesn't map to a
   known preference ID, surface that. Don't invent.
+- **Don't move log entries from Captured (archive) back to Active**
+  unless the corresponding preference is being revoked. The
+  archive is permanent unless the preference re-enters circulation.
 
 ---
 
@@ -263,12 +363,22 @@ on each skill write.
 
 For each mode:
 
-- **List:** active (and optionally revoked) preferences rendered
-  one-per-line; revoke command surfaced.
-- **Show:** full entry rendered; staleness flag if applicable.
+- **List:** captured preferences AND tracked-but-not-captured log
+  entries rendered one-per-line; revoke and clear-log commands
+  surfaced.
+- **Show:** full preference entry rendered if captured (with
+  archive history summary), OR full log history rendered if
+  tracked-but-not-captured (with auto-offer status), OR "nothing
+  tracked yet" if neither.
 - **Set:** preference written to `state/preferences.md` with all
-  required fields; user shown the entry; revoke command surfaced.
-- **Revoke:** entry moved from Active to Revoked section with
-  reason (if given); user shown the moved entry.
+  required fields; if a log entry existed for this ID, it's moved
+  to the archive section; user shown the entry; revoke command
+  surfaced.
+- **Revoke:** preference entry moved from Active to Revoked
+  section; the log archive entry is moved back to Active with a
+  fresh History list; user shown both.
+- **Clear-log:** the fork's Active section in `decision-log.md` is
+  reset (tally 0/0, streak 0, history cleared); optionally
+  annotated with reason; preferences are unchanged.
 
 In all cases: no auto-commit. The user commits.

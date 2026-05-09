@@ -101,10 +101,21 @@ action.
 
 ## Capture protocol
 
-A preference is captured **only** on explicit user signal. v1 does
-no inference from repeated yes-answers.
+Two paths into a preference:
 
-### Signals that capture
+1. **Explicit signal** — the user says "always do X." Captured
+   immediately.
+2. **Confidence-driven offer** — the orchestrator has observed N
+   consecutive same-answer responses to a fork (logged in
+   `state/decision-log.md`) and offers capture. User accepts or
+   declines per-offer.
+
+Both paths produce the same preference entry; the difference is
+how the orchestrator was prompted to capture.
+
+### Path 1: Explicit signal
+
+Signals that capture immediately:
 
 - "always do X" / "always X"
 - "from now on, X"
@@ -113,29 +124,49 @@ no inference from repeated yes-answers.
 - "yes, and don't ask again"
 - Direct invocation: "/preferences set `<id>` `<value>`"
 
-### When the orchestrator should ask "want me to remember?"
-
-After answering a question that's preference-eligible (the question
-maps to a known preference ID and is in low-risk or high-risk tier),
-the orchestrator MAY append:
-
-> "Want me to remember this for next time? Save preference
-> `<id>: <value>`?"
-
-This is **opt-in capture** — one extra short question, zero
-hidden capture. If the user says no, no preference is set.
-
-For high-risk tier, the prompt is more explicit:
-
-> "Want me to remember this and apply it automatically going
-> forward? `<id>` is high-risk — I'll surface it in `/status`
-> so it stays visible. Save? [yes / no]"
-
-### What captures
-
 When the user signals capture, write the preference to
 `state/preferences.md` with all required fields populated. Tell
 the user what was written, including the revoke command.
+
+### Path 2: Confidence-driven offer
+
+Each time a skill asks a known-fork question and gets an answer,
+the skill logs the decision in
+[`state/decision-log.md`](../state/decision-log.md) per the
+format spec there.
+
+After logging, the skill checks the log's aggregate for the fork:
+
+- **If the streak of consecutive same-answers ≥ 3 AND the fork is
+  low-risk AND no offer cooldown is active**, the skill offers:
+
+  > "I've seen you answer `<value>` to this <N> times in a row.
+  > Want me to remember it as a preference and stop asking?
+  > [yes / no]"
+
+  - **yes** → capture as a preference (path 1's effect). The fork
+    moves to `state/preferences.md`; future invocations apply
+    silently with disclosure. Decision log entries for this fork
+    are pruned (kept as audit, but the active counter resets).
+  - **no** (or silence) → no capture. Set a cooldown: the offer
+    won't repeat until 5 more decisions have been logged for this
+    fork. The decline itself is logged.
+
+- **If the fork is high-risk**, no auto-offer is made regardless
+  of streak length. High-risk preferences always require explicit
+  `/preferences set` invocation. The decision log still tracks
+  high-risk forks (for audit), but the orchestrator does not
+  prompt for capture.
+
+- **If the streak < 3 OR a cooldown is active**, no offer. Just
+  log and move on.
+
+### What gets logged
+
+Only known preference IDs (per the registry below). Skills that
+hit a fork without a registered preference ID don't log — there's
+nothing to aggregate. To make a new fork preference-eligible,
+register the ID in the table at the bottom of this file.
 
 ---
 
@@ -193,6 +224,118 @@ Revocation is logged in the file (the entry isn't fully deleted —
 its body is replaced with a "revoked" marker plus the revoke date
 and reason). Audit trail.
 
+After revocation, the decision log resumes accumulating for that
+fork — the orchestrator goes back to asking, and may eventually
+offer capture again if a new streak forms.
+
+---
+
+## Decision log discipline
+
+### File location
+
+`state/decision-log.md`. Bootstrapped from
+[`bootstrap/decision-log.md.template`](../bootstrap/decision-log.md.template)
+(skip-if-exists).
+
+### Who writes
+
+- **Skills with known forks** write entries directly when they ask
+  a known-fork question and get an answer. Format spec in the
+  template; one-line entries with optional context.
+- **`/preferences`** reads (for `list` and `show` modes) and prunes
+  (when a preference is captured, the active counters reset for
+  that fork). Doesn't otherwise write.
+
+### What's tracked per fork
+
+A `## <preference-id>` section per fork that's been asked at least
+once. Section header carries the aggregate; entries below it are
+the rolling history.
+
+```markdown
+## auto-scaffold-shared-on-register
+
+- **Tally:** yes 5 / no 0 (streak: 5 yes)
+- **Last asked:** 2026-05-09
+- **Last offer:** never (or `<YYYY-MM-DD> declined`, with cooldown counter)
+- **Tier:** low-risk
+
+### History
+
+- 2026-05-09 chazz: yes — sub-repo: ios
+- 2026-05-08 chazz: yes — sub-repo: web
+- 2026-05-07 chazz: yes — sub-repo: api
+- 2026-05-05 chazz: yes — sub-repo: devops
+- 2026-05-03 chazz: yes — sub-repo: payments
+```
+
+History is **prepend** (newest first). Aggregate header is
+**recomputed on each write**:
+
+- `yes` count = number of yes entries in History
+- `no` count = number of no entries in History
+- `streak` = run length of consecutive same-answer entries from the
+  top of History
+- `last asked` = top entry's date
+- `last offer` = updated when an auto-offer is made; carries the
+  outcome (`accepted` and the entry is then pruned from log; or
+  `declined` with cooldown counter)
+- `tier` = mirrored from the registry below; informational
+
+### How a skill writes a log entry
+
+1. Read `state/decision-log.md`. Locate or create the `## <id>`
+   section.
+2. Prepend a new line to the History list:
+
+   ```
+   - <YYYY-MM-DD> <handle>: <value> [— <context>]
+   ```
+
+   Context is optional; useful when the answer applies to a
+   specific sub-repo or artifact.
+3. Recompute the aggregate header (yes/no/streak/last asked).
+4. Write back.
+
+The format is plain markdown. Skills without a shared helper still
+produce consistent files as long as they follow the spec exactly.
+
+### Cooldown bookkeeping
+
+When an auto-offer is **declined**, set:
+
+```
+- **Last offer:** <YYYY-MM-DD> declined (cooldown: 5 decisions remaining)
+```
+
+On each subsequent log entry for the same fork, decrement the
+cooldown counter. When it reaches 0, the field becomes
+`<YYYY-MM-DD> declined (cooldown expired)` and offers are eligible
+again at the next streak threshold.
+
+### Pruning
+
+When a preference is captured (path 1 explicit OR path 2 accepted):
+
+- The fork's active section in `decision-log.md` is **moved** to a
+  `## Captured (archive)` section at the bottom of the file. The
+  full history is preserved for audit; the active counter is no
+  longer maintained for that fork.
+- If the preference is later revoked, the fork's section is moved
+  back to active and a fresh `### History` list begins (the
+  archive remains intact).
+
+### What this is NOT
+
+- **Not** a general-purpose user activity log. Only known
+  preference IDs are tracked.
+- **Not** a substitute for the Audit log. `AUDIT.md` is the
+  chronological record of significant orchestrator actions; the
+  decision log is per-fork tally only.
+- **Not** machine learning or inference. The threshold and tier
+  rules are simple, deterministic, and documented.
+
 ---
 
 ## Known preferences
@@ -235,8 +378,11 @@ respect the preference, document the trigger phrases the
 ## See also
 
 - [`skills/preferences/SKILL.md`](skills/preferences/SKILL.md) —
-  the user-facing skill for inspect/set/revoke
+  the user-facing skill for inspect/set/revoke + log read
 - [`orchestrator-rules.md`](orchestrator-rules.md) "When in doubt"
-  — the complementary rule for the asking side
+  / "When *not* in doubt" — the complementary rules for the asking
+  and acting sides
 - [`bootstrap/preferences.md.template`](../bootstrap/preferences.md.template)
-  — the initial-state file template
+  — the initial preferences file
+- [`bootstrap/decision-log.md.template`](../bootstrap/decision-log.md.template)
+  — the initial decision-log file

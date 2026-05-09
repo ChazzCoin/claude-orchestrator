@@ -165,6 +165,7 @@
       { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
       { "from": "bootstrap/preferences.md.template",                "to": "state/preferences.md",       "policy": "skip-if-exists" },
+      { "from": "bootstrap/decision-log.md.template",               "to": "state/decision-log.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
       { "from": "bootstrap/design/README.md.template",              "to": "design/README.md",           "policy": "skip-if-exists" },
       { "from": "bootstrap/design/brand.md.template",               "to": "design/brand.md",            "policy": "skip-if-exists" },
