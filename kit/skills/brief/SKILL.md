@@ -5,33 +5,48 @@ description: Generate a synthesized CTO orientation briefing — what changed ac
 
 # /brief — Synthesized CTO orientation
 
+**Output pattern:** [Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for the changed-since-last-brief section + [Pattern 28 — Stats card grid](../../output-catalogue.md#28--stats-card-grid)
+for headline counts at the top.
+
 > ⚠️ **Stub.** Provisional behavior contract — refine on first
-> real use. Different from `/status` (which dumps macro state) in
-> that this *synthesizes* — pulls signals across sub-repos and
-> orchestrator artifacts and renders a one-pager.
+> real use. Different from `/status` (snapshot — where things ARE
+> right now) in that this *synthesizes the delta* — pulls signals
+> for what's CHANGED, AGED, or SURFACED since last session.
 
 The "I just sat down, what do I need to know?" skill. Goal: a
-reviewer can read the output in 60 seconds and know what's
-actually different vs. last session.
+reviewer reads the output in 60 seconds and knows what's actually
+different from last session.
 
 ## What it pulls
 
-### Across sub-repos (from `state/manifest.md` paths)
+### Across sub-repos (from `repos/<name>/` working trees)
 
-For each registered sub-repo:
-- `git log --since="<last brief or 7 days>"` — recent commits
-- `gh pr list --state open --search "updated:>$LAST"` — PRs with
-  recent activity
-- Last-known HEAD vs. current HEAD — what shipped
+For each registered sub-repo cloned locally (`repos/<name>/` exists):
+- `git -C repos/<name> log --since="<last brief or 7 days>"` —
+  recent commits.
+- `gh pr list -R <owner>/<repo> --state open --search "updated:>$LAST"`
+  — PRs with recent activity.
+- Last-known HEAD (from `state/last-fetch.json`) vs current HEAD —
+  what shipped.
+
+If `state/last-fetch.json` is missing or >24h old, surface the
+warning and suggest `/refresh` before continuing — the delta is
+unreliable on stale data.
 
 ### From the orchestrator
 
-- `migrations/active/` — open migrations + per-repo state + age
-- `risks/open/` — risks aging without movement (>30d)
-- `incidents/` — anything not yet `postmortem-filed`
-- `open-questions.md` — recently added (last 14d)
-- `AUDIT.md` — last 5–10 entries
-- `roadmap.md` "Now" section — top-of-mind work
+- `state/inbox/<me>.md` — unread messages addressed to me (from
+  `.claude/local-config.json` `me` + `inbox_last_read`).
+- `migrations/active/` — open migrations + per-repo state + age.
+- `risks/open/` — risks aging without movement (>30d).
+- `incidents/` — anything not yet `postmortem-filed`.
+- `events.md` "Upcoming" — events in the next 14 days.
+- `company-notes.md` — entries added in the last 14 days
+  (date-headed entries since last brief).
+- `open-questions.md` — recently added (last 14d).
+- `AUDIT.md` — last 5–10 entries.
+- `roadmap.md` "Now" section — top-of-mind work.
 
 ## Output shape
 
@@ -97,6 +112,9 @@ For each registered sub-repo:
   the file directly.
 - Onboarding (new collaborator) → `/onboard` (different skill,
   different purpose).
+- Compiled cross-repo views — `/roadmap`, `/tasks`, `/backlog` for
+  the dimension you care about; `/brief` is the daily-delta layer
+  that pulls *changes*, not the full picture.
 
 ## What "done" looks like
 

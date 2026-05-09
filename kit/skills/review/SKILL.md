@@ -14,6 +14,12 @@ Run a weekly / monthly / quarterly review. Synthesize state from
 the orchestrator, walk the user through the right template, file
 the result.
 
+**Output pattern:** [Pattern 28 — Stats card grid](../../output-catalogue.md#28--stats-card-grid)
+for headline metrics + [Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for the period's chronology. The filed review file follows
+`reviews/_template-*.md` markdown structure (not catalogued — those
+are durable artifacts, not terminal output).
+
 ## Modes — detect from input
 
 - "weekly", "Friday wrap", "Monday" → weekly mode
@@ -43,28 +49,38 @@ Whichever mode:
 ## Mode: weekly
 
 **Source pull:**
-- `git log --since="<week start>"` against each sub-repo path in
-  `state/manifest.md` — what shipped per repo
-- `migrations/active/` — for each, age + per-repo state
-- `risks/open/` — flag anything updated this week
-- `incidents/` — flag anything opened or resolved this week
-- `open-questions.md` — what was added
+- `git -C repos/<name> log --since="<week start>"` for each cloned
+  sub-repo — what shipped per repo. (If `repos/<name>/` doesn't
+  exist, fall back to `gh api repos/<owner>/<repo>/commits` for
+  the same window.)
+- `migrations/active/` — for each, age + per-repo state.
+- `risks/open/` — flag anything updated this week.
+- `incidents/` — flag anything opened or resolved this week.
+- `events.md` "Upcoming" + "Past" — events in the past week (what
+  happened) and next two weeks (what's coming).
+- `state/inbox/*.md` — surface inboxes with new entries this week.
+- `company-notes.md` — entries added this week.
+- `open-questions.md` — what was added.
 
 **Walk the user through** the weekly template's qualitative
 sections: Headline, Stuck or stale, At risk this week, Next week's
-top 3.
+top 3, Inbox follow-ups.
 
 ## Mode: monthly
 
 **Source pull:**
 - All weekly reviews from the period (in
-  `reviews/weekly/YYYY-WW*.md` matching the month) — roll up
-- `migrations/closed/` — what closed this month
-- `decisions/` — ADRs filed this month
-- `cost-tracking.md` — current month vs last
-- `slos.md` — current posture
-- `incidents/` from the month
-- `vendors.md` — anything renewed / changed
+  `reviews/weekly/YYYY-WW*.md` matching the month) — roll up.
+- `migrations/closed/` — what closed this month.
+- `decisions/` — ADRs filed this month.
+- `cost-tracking.md` — current month vs last.
+- `slos.md` — current posture.
+- `incidents/` from the month.
+- `vendors.md` — anything renewed / changed.
+- `events.md` "Past" — events that occurred this month (notable
+  conferences, demos, launches).
+- `company-notes.md` — month's notes (signals to amplify or move
+  to artifacts).
 
 **Walk through** the monthly template — heavier on rolled-up data,
 lighter on free-form.
@@ -72,12 +88,16 @@ lighter on free-form.
 ## Mode: quarterly
 
 **Source pull:**
-- All monthly reviews from the period
-- `roadmap.md` — diff the start-of-quarter snapshot against now
-- `tech-vision.md`, `tech-principles.md` — re-read both
-- All `risks/open/` — full review pass
+- All monthly reviews from the period.
+- `roadmap.md` — diff the start-of-quarter snapshot against now.
+- `tech-vision.md`, `tech-principles.md` — re-read both.
+- `company-profile.md` "Strategic direction" — re-read; flag if
+  drifted from actual quarter outcomes.
+- All `risks/open/` — full review pass.
 - `compliance.md`, `security-posture.md`, `vendors.md` — each
-  reviewed
+  reviewed.
+- Compiled views from the period: run `/roadmap`, `/tasks`,
+  `/backlog` and review them as part of strategic recalibration.
 
 **Walk through** the quarterly template's strategic sections:
 Roadmap reality check, Principles re-examination, Vision

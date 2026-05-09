@@ -11,6 +11,12 @@ orchestrator's workspace at `repos/<name>/`. After registration the
 sub-repo is included in `/sync-check`, eligible to receive migration
 notices, and visible in `/status`.
 
+**Output pattern:** [Pattern 34 — Selection prompt](../../output-catalogue.md#34--selection-prompt)
+shape for the per-input Q&A flow (one input per prompt, defaults
+where reasonable, confirm before write) +
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+on successful registration + clone.
+
 This is the **first-time setup** flow — per-repo, deliberate, used
 when a company is bootstrapping their orchestrator. For onboarding a
 collaborator onto an already-configured instance (clone everything

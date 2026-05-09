@@ -187,14 +187,23 @@ The skills under `.claude/skills/` are the structured workflows for
 this role. Run `/skills` for the live list. Current set:
 
 **Macro state (interview-driven):**
-- `/audit` — populate / refresh stack, contracts, conventions, constraints
+- `/audit` — populate / refresh stack, contracts, conventions, constraints, company info
 - `/onboard` — synthesize orchestrator state for a new collaborator
-- `/status` — current macro picture at a glance
-- `/brief` — synthesized daily orientation across sub-repos + orchestrator
+- `/status` — current macro picture at a glance (compiled from cached state)
+- `/brief` — what's *changed* since last session (delta layer over `/status`)
 
 **Sub-repo coordination:**
-- `/register` — add a sub-repo to `state/manifest.md`
+- `/register` — add a sub-repo to `state/manifest.md` and clone into `repos/<name>/`
+- `/refresh` — fetch origin for every cloned sub-repo; updates `state/last-fetch.json`
 - `/sync-check` — drift between sub-repos and contracts
+
+**Compilation (cross-sub-project views):**
+- `/roadmap` — phase-aligned view across all sub-repo roadmaps
+- `/tasks` — active in-progress + next-up work across all sub-repos
+- `/backlog` — queued (not-yet-active) work across all sub-repos
+
+**Communication:**
+- `/inbox` — per-person addressed messaging (send / read / sent / list)
 
 **Artifacts (one per concern):**
 - `/decision` — file an ADR

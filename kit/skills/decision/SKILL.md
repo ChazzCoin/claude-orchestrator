@@ -12,6 +12,14 @@ decisions that affect the architecture of the whole company.
 Per CLAUDE.md: honest tradeoffs. The point is the reasoning, not the
 verdict. No marketing voice.
 
+**Output pattern:** the rendered ADR follows the
+`decisions/_template.md` markdown structure (durable artifact, not
+catalogued). Chat output during drafting uses
+[Pattern 14 — Decision tree](../../output-catalogue.md#14--decision-tree)
+for the alternatives discussion and
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+when the ADR file lands.
+
 ## When this is the right shape
 
 ADR scale, not commit-message scale. Use this for:

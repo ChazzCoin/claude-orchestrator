@@ -14,6 +14,12 @@ This is **in-orchestrator messaging**, not email or Slack. Use it
 for things tied to orchestrator context — "I changed the api roadmap,
 take a look," "we should talk about the events.md entry for Friday."
 
+**Output pattern:** [Pattern 23 — Activity timeline](../../output-catalogue.md#23--activity-timeline)
+for `read` mode (per-message timeline-style entries with timestamp +
+sender + subject) + [Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+on `send` confirmation. `sent` and `list` modes use a compact list
+form (Pattern 32 Leaderboard-lite, sorted by recency or count).
+
 ## Identity
 
 Every machine has `.claude/local-config.json` (gitignored) with:

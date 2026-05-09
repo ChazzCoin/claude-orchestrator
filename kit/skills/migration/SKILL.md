@@ -12,6 +12,14 @@ A **migration** is a coordinated state transition across sub-repos with
 a defined start, blast radius, and close criteria. See
 `migrations/README.md` for the full lifecycle.
 
+**Output pattern:** [Pattern 4 — Sprint task board](../../output-catalogue.md#4--sprint-task-board)
+for `list` mode (per-migration row with per-repo state symbols) +
+[Pattern 24 — Comparison matrix](../../output-catalogue.md#24--comparison-matrix)
+when surfacing per-repo state across migrations +
+[Pattern 1 — Hero completion card](../../output-catalogue.md#1--hero-completion-card)
+on `close`. Rendered migration files follow `migrations/_template.md`
+markdown structure (durable artifact).
+
 ## Modes
 
 This skill has four modes. Detect which from user input:

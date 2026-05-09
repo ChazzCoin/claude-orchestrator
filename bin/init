@@ -297,6 +297,7 @@ state/brief-cache.md
 state/last-fetch.json
 state/roadmap-compiled.md
 state/tasks-compiled.md
+state/backlog-compiled.md
 EOF
   echo "    create:  .gitignore"
 fi

@@ -1,5 +1,107 @@
 # Changelog
 
+## 0.10.0 — 2026-05-09
+
+Skill-alignment sweep + new `/backlog` compiler. Every existing
+skill is now reviewed for the v0.9.0 architecture (workspace-internal
+sub-repos, scripted-skill discipline, output catalogue), updated for
+stale references, given a pattern declaration, and cross-linked to
+related new skills.
+
+### New skill: `/backlog`
+
+Cross-sub-project backlog compiler — third member of the compilation
+trio.
+
+| Skill | Scope |
+|---|---|
+| `/roadmap` | Future phases — strategic planning |
+| `/backlog` | Queued items not yet started — tactical queue |
+| `/tasks` | Active work (in-progress + next up) |
+
+`/backlog` reads from claude-kit's `tasks/backlog/`, top-level
+`BACKLOG.md`, or GitHub issues with the `backlog` label as
+fallbacks. Sorts within each sub-repo by priority (high → medium →
+low → unspecified), then by age. Flags items >60 days old as
+`⚠ aging`. Surfaces cross-stack signals (priority gaps, coupling
+opportunities, repos with no priority data). Output uses Pattern 4
+(Sprint task board) for the artifact + Pattern 28 (Stats card grid)
+for chat summary.
+
+### Substantive updates to existing skills
+
+- **`/brief`** — drops `state/manifest.md paths` references; switches
+  to `repos/<name>/` working trees; adds inbox unread, events
+  upcoming, company-notes recent-additions to the source list. Now
+  explicitly the *delta* layer over `/status` (changed since last
+  session vs current state).
+- **`/onboard`** — canonical sources expanded to include
+  `company-profile.md` and `events.md`. "How to operate" section
+  reorganized into Daily / Compilers / Authoring / Setup groups
+  showing all 19 skills. Adds prerequisite check for `repos/`
+  population (suggests `bin/setup` first).
+- **`/review`** — source pulls switched to `repos/<name>/` for git
+  log queries (with `gh api` fallback for remote-only). Weekly mode
+  pulls inbox + events + company-notes from the period. Quarterly
+  mode reads `company-profile.md` strategic direction and runs
+  `/roadmap`, `/tasks`, `/backlog` as part of strategic
+  recalibration.
+- **`/audit`** — new Phase 8 covers company information
+  (`company-profile.md` interview, `company-notes.md` seed,
+  `events.md` upcoming items). Optional but high-value for
+  `/onboard` quality.
+
+### Pattern declarations on every skill
+
+Every `SKILL.md` now declares its output pattern(s) from
+`output-catalogue.md`. The discipline (per
+`kit/skill-architecture.md`) is: scripts declare in header
+comments, skills declare inline near the top.
+
+| Skill | Primary pattern(s) |
+|---|---|
+| `/audit` | 30 multi-step wizard, 26 empty state |
+| `/backlog` | 4 sprint task board, 28 stats grid |
+| `/brief` | 23 timeline, 28 stats grid |
+| `/decision` | 14 decision tree, 1 hero card |
+| `/feature` | 23 timeline, 1 hero card, 4 sprint board |
+| `/inbox` | 23 timeline, 1 hero card |
+| `/incident` | 25 alerts, 23 timeline, 1 hero card |
+| `/migration` | 4 sprint board, 24 matrix, 1 hero card |
+| `/onboard` | 30 wizard, 33 command reference |
+| `/refresh` | 17 git branch overview |
+| `/register` | 34 selection prompt, 1 hero card |
+| `/review` | 28 stats grid, 23 timeline |
+| `/risk` | 6 severity audit, 25 alerts |
+| `/roadmap` | 3 roadmap timeline (multi-track), 28 stats grid |
+| `/skills` | 33 command reference |
+| `/status` | 28 stats grid + 17 git overview + 23 timeline (composed) |
+| `/sync` | 23 timeline, 25 alerts, 1 hero card |
+| `/sync-check` | 17 git overview, 6 severity audit |
+| `/tasks` | 4 sprint board, 28 stats grid |
+
+### Wiring updates
+
+- `bin/init` — adds `state/backlog-compiled.md` to gitignore heredoc.
+- `bootstrap/CLAUDE.md.template` — Skills section reorganized into
+  Macro state / Sub-repo coordination / Compilation /
+  Communication / Artifacts / Kit groupings. Adds the four new
+  skills (`/refresh`, `/inbox`, `/roadmap`, `/tasks`, `/backlog`)
+  with their roles.
+- `README.md` — Skills shipped table updated with all 19 skills;
+  notes the output-catalogue discipline.
+
+### Deferred to v0.11.0
+
+- **Convert `/sync` to scripted form** (`bin/sync`). The
+  classify/copy/pin-bump flow is mechanical; skill should shrink to
+  a thin wrapper that surfaces the script's diff report and
+  proposes user-approved actions. Tracked in `/sync`'s SKILL.md.
+- **Convert `/sync-check`, `/roadmap`, `/tasks`, `/backlog`,
+  `/status` mechanical halves to scripts.** Each has data-gathering
+  that should be deterministic (`bin/<name>-data` writing
+  `state/<name>.json`); the skill renders.
+
 ## 0.9.0 — 2026-05-09
 
 Two design shifts in this release: introduce the **scripted-skill
