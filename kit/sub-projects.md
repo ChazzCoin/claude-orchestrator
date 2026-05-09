@@ -43,9 +43,10 @@ The orchestrator gets the basic treatment:
 - Read `git log`, current branch, open PRs (via `gh`)
 - Read top-level `README.md` if present
 - Open branches and PRs the same way as kit-enabled
-- Drop migration notices into `<sub>/.claude/active-migrations.md`
-  (the directory gets created if missing — the file is plain
-  markdown any human can read)
+- Drop orchestrator notices into `<sub>/.claude/active-<concern>.md`
+  (currently: `active-migrations.md` owned by `/migration`,
+  `active-features.md` owned by `/feature`). The directory gets
+  created if missing; files are plain markdown any human can read.
 - Skip everything kit-specific (no task tracking, no AUDIT log,
   no advertisement protocol read, no `task-rules.md` reference)
 
@@ -53,8 +54,8 @@ When the orchestrator first registers a non-kit sub-project, it
 **offers** (once, not repeatedly) to install claude-kit:
 
 > "This sub-project doesn't have claude-kit. Want me to install it?
-> It would let me track tasks, see active work, and push migration
-> notices the sub-kit will read on session start."
+> It would let me track tasks, see active work, and push
+> orchestrator notices the sub-kit will read on session start."
 
 The user accepts (orchestrator runs claude-kit's `bin/init` against
 the sub-project) or declines (decision is recorded in the manifest
@@ -75,6 +76,8 @@ which flavor.
 | `<sub>/.claude/foundation.json` | ✓ — kit version detection | n/a | `/register`, `/sync-check` |
 | `<sub>/.claude/active.md` | ✓ — advertisement | n/a | `/sync-check` |
 | `<sub>/.claude/active-migrations.md` | ✓ — confirm what we wrote | ✓ — same | optional |
+| `<sub>/.claude/active-features.md` | ✓ — confirm what we wrote | ✓ — same | optional |
+| `<sub>/.claude/shared/*.md` | ✓ — durable two-way context | ✓ — same | on demand |
 | `<sub>/CLAUDE.md` | ✓ — confirm orchestrator back-pointer | ✓ — context only | `/register`, on demand |
 | `<sub>/tasks/{backlog,active,done}/` | ✓ — task state | n/a | `/sync-check`, on demand |
 | `<sub>/tasks/PHASES.md`, `tasks/ROADMAP.md` | ✓ | n/a | on demand |
@@ -171,12 +174,24 @@ file?"* Yes → code. No → doc.
 The orchestrator writes into sub-projects in four cases. The
 discipline split is the load-bearing rule.
 
-### 1. Migration notices — `<sub>/.claude/active-migrations.md`
+### 1. Auto-managed notices — `<sub>/.claude/active-<concern>.md`
 
-The structured cross-repo coordination signal. Owned by
-`/migration`. Template at
-[`kit/templates/sub-repo-notices/migrations.md.template`](templates/sub-repo-notices/migrations.md.template).
+The structured cross-repo coordination channel. One file per
+concern, regenerated wholesale by an owning skill, deleted on empty.
+Templates at [`templates/sub-repo-notices/`](templates/sub-repo-notices/);
+discipline at [`templates/sub-repo-notices/README.md`](templates/sub-repo-notices/README.md).
 Works on kit-enabled and non-kit alike.
+
+**Current concerns:**
+
+- **Migrations** — `active-migrations.md`, owned by `/migration`.
+  Open cross-repo state transitions affecting this repo.
+- **Features** — `active-features.md`, owned by `/feature`. Open
+  cross-cutting feature plans affecting this repo.
+
+Adding a new concern follows the pattern at
+[`templates/sub-repo-notices/README.md`](templates/sub-repo-notices/README.md)
+"Adding a new concern."
 
 ### 2. Non-running file updates — orchestrator touches files directly via PR
 
@@ -237,6 +252,62 @@ If the user accepts the install offer, the orchestrator runs
 sanctioned write that creates the kit shape in the target.
 Standard PR flow afterward (the init creates files; orchestrator
 opens a PR with all of them so the user can review).
+
+### 5. Shared context — durable two-way per-repo files
+
+For durable hand-edited per-repo memory at `<sub>/.claude/shared/`
+(architecture notes, repo inbox, references, freeform notes). See
+[`templates/sub-repo-shared/README.md`](templates/sub-repo-shared/README.md).
+
+Different discipline from the auto-managed `active-<concern>.md`
+notices: `shared/*.md` is bidirectional, append-friendly,
+hand-edited, never auto-regenerated.
+
+The orchestrator may write here when:
+
+- Leaving a durable note for the repo's next session
+  (`shared/inbox.md`)
+- Recording a reference URL discovered during work
+  (`shared/references.md`)
+- Appending a durable observation worth carrying across sessions
+  (`shared/notes.md`)
+- The user explicitly directs it to record an architectural fact
+  (`shared/architecture.md` — default authorship is the dev or
+  sub-kit, not the orchestrator)
+
+Standard PR flow (these are non-running files):
+
+1. Pull latest main in the sub-repo
+2. Branch: `chore/orch-<YYYY-MM-DD-slug>`
+3. Append or edit the file
+4. PR titled `orch: <one-line summary>`
+5. User approves merge
+
+Bootstrap: when a sub-repo is registered, the `shared/` directory
+may be scaffolded with empty templates so the channel exists. Whether
+`/register` does this automatically is a project decision; the
+default is conservative (offer once, don't auto-scaffold).
+
+### 6. Proposal staging — orchestrator-side per-repo task drafts
+
+For tasks and phases the CTO is planning but hasn't committed to a
+sub-repo yet. Lives in the orchestrator at `proposals/<repo>/`,
+not in the sub-repo. Lets multiple repos be planned in parallel
+without opening PRs in those repos prematurely.
+
+See [`../proposals/README.md`](../proposals/README.md) for the
+lifecycle. Skills:
+
+- [`/propose`](skills/propose/SKILL.md) — new / update / retire / list
+  proposals (tasks and phases).
+- [`/promote`](skills/promote/SKILL.md) — push a proposal into the
+  target sub-repo via the standard `chore/orch-task-*` PR flow
+  (which is path 3 above — the propose/promote pair feeds path 3).
+
+Promotion is the only sanctioned path from staging to a sub-repo's
+`tasks/`. Direct task spec drops via path 3 still work for tasks
+that don't need iteration; both paths converge on the same end
+state.
 
 ---
 

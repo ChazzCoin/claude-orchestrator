@@ -1,0 +1,41 @@
+# Active orchestrator features
+
+> **Auto-managed.** This file is written by the company orchestrator's
+> `/feature` skill. Hand edits get overwritten the next time
+> `/feature` touches it. If a feature listed here is wrong or
+> stale, fix it in the orchestrator at `{{ORCHESTRATOR_PATH}}`, not
+> here.
+>
+> **Source orchestrator:** `{{ORCHESTRATOR_PATH}}`
+> **Last written:** `{{TIMESTAMP}}` by `{{SKILL}}`
+
+Cross-cutting features affecting **{{REPO_NAME}}**. The feature
+file in the orchestrator is the shared spec sub-repos coordinate
+around — read it before drafting tasks or phases that contribute
+to the feature.
+
+## Open
+
+<!--
+  Each open feature affecting this repo gets one entry, in this
+  shape:
+
+  - **<id>** — <one-line outcome from the feature body's "What"
+    section, condensed>.
+    - **Status:** <planning | in-progress>
+    - **Feature file:** [`<id>.md`](<absolute_path_to_orchestrator>/features/<id>.md)
+    - **Related migrations:** <comma-separated IDs or "none">
+
+  Order matches the orchestrator's `features/` directory (newest
+  first by ID date prefix). Includes only features whose
+  frontmatter `affects:` contains this repo and whose `status:` is
+  `planning` or `in-progress`. Closed (`shipped` / `abandoned`)
+  features drop off automatically — `/feature` regenerates this
+  file wholesale on each write.
+
+  When this section becomes empty (last open feature touching this
+  repo closed), `/feature` deletes the file rather than leaving it
+  empty.
+-->
+
+{{FEATURE_ENTRIES}}

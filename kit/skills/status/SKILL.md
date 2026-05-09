@@ -50,9 +50,13 @@ by `▸` glyph; emoji used sparingly (`⚪ 🟡 ✅` for migration state,
 | `roadmap.md` | Now / Recently shipped |
 | `events.md` | Upcoming (next 14 days) |
 | `migrations/active/*.md` | active migrations + per-repo state symbols |
+| `features/*.md` (status: planning or in-progress) | open feature count |
 | `open-questions.md` | Blocking-tagged items |
 | `state/manifest.md` | registered sub-repos |
 | `repos/<name>/.claude/active.md` | sub-kit advertisement (if kit-enabled) |
+| `state/preferences.md` | high-risk preferences (always surfaced) |
+| `state/decision-log.md` | forks approaching auto-offer threshold (streak ≥ 2 same-answer) |
+| `proposals/<name>/backlog/` | per-repo proposal counts (drafts not yet promoted) |
 
 No `gh` calls, no `git fetch`. Pure read against on-disk state.
 
@@ -84,6 +88,18 @@ No `gh` calls, no `git fetch`. Pure read against on-disk state.
 ▸ Sub-repos
     <name>  <branch> +<ahead> -<behind>  [dirty]  <N PRs>  <sub-kit task or —>
     <name>  remote-only                                     (no local clone)
+
+▸ Proposals (<N drafts across M repos>)
+    <repo>  <count> drafts  ·  <count> phases proposed
+    (only repos with at least one proposal in backlog/)
+
+▸ High-risk preferences (<N>)
+    <id>  <decision>  · set <YYYY-MM-DD> <handle>
+    (always surfaced — high-risk capture is sticky)
+
+▸ Approaching auto-offer (<N>)
+    <id>  yes <K> / no <M> (streak: <K> yes)  · 1 more for offer
+    (low-risk forks with streak == 2; advisory)
 
 ▸ Drift
     <commits in sub-repos not associated with any active migration>
@@ -146,6 +162,37 @@ placeholders. Inbox section omits when 0 unread.
    subheading).
 3. Render one line each.
 4. Note count of remaining open (non-blocking) questions.
+
+### Proposals
+
+1. Walk `proposals/<name>/` directories.
+2. For each repo with `proposals/<name>/backlog/*.md`, count drafts.
+3. For each `proposals/<name>/PHASES.md`, count `## Phase ` headings
+   (skip those marked `*(retired …)*` or `*(promoted …)*`).
+4. Render only repos with non-zero counts. If all repos have zero,
+   omit the section.
+
+### High-risk preferences
+
+1. Read `state/preferences.md`. Parse `## Active preferences` for
+   entries with `**Tier:** high-risk`.
+2. Render every high-risk preference, one per line. **Always
+   surface** even when the list is short — the discipline doc says
+   high-risk capture is "sticky," continuously visible.
+3. If zero high-risk preferences are captured, omit the section.
+
+### Approaching auto-offer
+
+1. Read `state/decision-log.md`. Parse `## Active` per-fork sections.
+2. For each fork:
+   - Skip if tier is high-risk (no auto-offer regardless of streak).
+   - Skip if active cooldown is set (`Last offer:` field shows
+     non-expired cooldown).
+   - Compute streak from header `**Tally:** ... (streak: <K> <value>)`.
+   - Include the fork only if streak == 2 (one short of auto-offer
+     threshold of 3).
+3. Render advisory: "1 more for offer." Helps the user know the
+   orchestrator is about to start asking-to-remember.
 
 ### Sub-repos
 

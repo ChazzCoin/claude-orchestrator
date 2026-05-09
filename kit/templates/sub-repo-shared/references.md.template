@@ -1,0 +1,72 @@
+# {{REPO_NAME}} — references
+
+> **Durable, hand-edited.** Curated URLs for this repo: official
+> framework docs, prior art, dashboards, runbooks elsewhere, vendor
+> APIs. The "where do I look for X" index.
+>
+> **Bootstrapped:** `{{TIMESTAMP}}`
+
+The dev pre-flight checklist (`governance/dev-preflight.md` step 4)
+expects task specs to list their references inline. This file is
+the **repo-wide** version: references that apply across many tasks,
+saved once, here, instead of re-pasting into every task spec.
+
+Group by topic. Brief annotation for each link explaining why it's
+worth knowing about.
+
+---
+
+## Framework / language
+
+<!-- Official docs for the language and primary framework. Pin to
+     the version you're on if version matters. -->
+
+- ...
+
+## Libraries
+
+<!-- Direct dependencies whose docs you'd want a new contributor to
+     have at hand. -->
+
+- ...
+
+## Internal services / cross-repo
+
+<!-- Other repos, internal APIs, shared infrastructure this depends
+     on. Link to their docs, their dashboards, their on-call docs. -->
+
+- ...
+
+## Vendor / third-party APIs
+
+<!-- External services this codebase calls. Link to API docs and to
+     account/admin URLs where useful. -->
+
+- ...
+
+## Dashboards / observability
+
+<!-- Grafana / Datadog / Sentry / logs viewer URLs that matter for
+     this repo. The on-call / "what's wrong right now" links. -->
+
+- ...
+
+## Architecture / design references
+
+<!-- Blog posts, papers, reference implementations, talks that
+     informed how this repo is built. -->
+
+- ...
+
+## Runbooks / operational
+
+<!-- If runbooks live elsewhere (a wiki, another repo), link them
+     here. If they live in this repo, link the local files. -->
+
+- ...
+
+---
+
+*Append new references as you encounter them during work. When a
+link goes dead, fix it or remove it — a stale reference is worse
+than no reference.*

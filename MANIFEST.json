@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -65,6 +65,18 @@
         "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions, output-pattern selection requirement. Generic across instances."
       },
       {
+        "from": "kit/governance/",
+        "to": ".claude/governance/",
+        "policy": "directory-mirror",
+        "note": "Phase/task discipline contracts the orchestrator and sub-kits both follow: phases-and-tasks.md, task-spec-shape.md, dev-preflight.md. Generic across instances."
+      },
+      {
+        "from": "kit/preferences.md",
+        "to": ".claude/preferences.md",
+        "policy": "file-replace",
+        "note": "Operating preferences discipline — how the orchestrator captures and applies recurring user decisions to reduce friction. The dual to orchestrator-rules.md 'When in doubt'. Generic across instances."
+      },
+      {
         "from": "kit/output-catalogue.md",
         "to": ".claude/output-catalogue.md",
         "policy": "file-replace",
@@ -93,6 +105,12 @@
         "to": "migrations/",
         "policy": "directory-mirror-files",
         "note": "Migration template and format docs. Top-level files only — does not touch active/ or closed/."
+      },
+      {
+        "from": "kit/proposals/",
+        "to": "proposals/",
+        "policy": "directory-mirror-files",
+        "note": "Proposal staging area templates (_template-task.md, _template-PHASES.md, README.md). Top-level files only — does not touch per-repo subdirectories created lazily by /propose."
       },
       {
         "from": "kit/risks/",
@@ -152,6 +170,8 @@
       { "from": "bootstrap/conventions/error-handling.md.template", "to": "conventions/error-handling.md", "policy": "skip-if-exists" },
       { "from": "bootstrap/conventions/naming.md.template",         "to": "conventions/naming.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/state/manifest.md.template",             "to": "state/manifest.md",          "policy": "skip-if-exists" },
+      { "from": "bootstrap/preferences.md.template",                "to": "state/preferences.md",       "policy": "skip-if-exists" },
+      { "from": "bootstrap/decision-log.md.template",               "to": "state/decision-log.md",      "policy": "skip-if-exists" },
       { "from": "bootstrap/AUDIT.md.template",                      "to": "AUDIT.md",                   "policy": "skip-if-exists" },
       { "from": "bootstrap/design/README.md.template",              "to": "design/README.md",           "policy": "skip-if-exists" },
       { "from": "bootstrap/design/brand.md.template",               "to": "design/brand.md",            "policy": "skip-if-exists" },

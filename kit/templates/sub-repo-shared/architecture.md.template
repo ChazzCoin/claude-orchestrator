@@ -1,0 +1,89 @@
+# {{REPO_NAME}} — architecture
+
+> **Durable, hand-edited.** This file persists across sessions. Both
+> the orchestrator and the sub-kit read it; both may write to it,
+> but humans are usually the primary author. Not auto-regenerated.
+>
+> **Bootstrapped:** `{{TIMESTAMP}}`
+> **Last meaningful update:** `<YYYY-MM-DD>` by `<author>`
+
+A living doc of how this repo is actually laid out — modules, data
+flow, key decisions, things you'd want to know on day one as a new
+contributor.
+
+The orchestrator reads this when authoring features that affect
+this repo. The sub-kit reads this on session start as part of the
+dev pre-flight (`governance/dev-preflight.md` step 5). Keep it
+honest — drift between this doc and the code is exactly what this
+file exists to prevent.
+
+---
+
+## Top-level layout
+
+<!-- One paragraph + a tree. What lives where, in plain language. -->
+
+```
+{{REPO_NAME}}/
+├── ...
+└── ...
+```
+
+## Modules / boundaries
+
+<!-- The 3–10 logical pieces of this codebase. For each: what it
+     does, what it depends on, what depends on it. -->
+
+### `<module>`
+
+- **Purpose:** ...
+- **Depends on:** ...
+- **Used by:** ...
+
+## Data flow
+
+<!-- For request/response systems: what comes in, what goes out, what
+     happens in between. For event-driven: what events flow where.
+     For libraries: what's the public API surface. -->
+
+## Key contracts and seams
+
+<!-- Cross-cutting interfaces: public API, DB schema, event payloads,
+     shared types. Link to bootstrap/contracts/ entries in the
+     orchestrator if any. -->
+
+## Decisions worth knowing
+
+<!-- The "why is it this way" you'd want a new contributor to know
+     in week one. Link ADRs in <sub>/docs/decisions/ for full
+     context; summarize the one-liners here. -->
+
+- ...
+
+## Gotchas
+
+<!-- Things that trip people up. Edge cases. Bugs that look like
+     features. The "wait until you find out about X" list. -->
+
+- ...
+
+## Out-of-repo dependencies
+
+<!-- Other repos, services, vendor APIs this depends on. Versions
+     where it matters. -->
+
+- ...
+
+## How to run / test / deploy
+
+<!-- The minimum a new contributor needs. The full version lives in
+     <sub>/README.md or <sub>/docs/runbooks/; this is the index. -->
+
+- **Run locally:** ...
+- **Tests:** ...
+- **Deploy:** ...
+
+---
+
+*This file is hand-edited. When the architecture changes, update
+this file in the same PR.*

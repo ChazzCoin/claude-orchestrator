@@ -1,0 +1,70 @@
+# Decision log
+
+> Tally of decisions the user has made at known forks the
+> orchestrator would otherwise have to ask about. Used to develop
+> confidence: after N consecutive same-answer responses to a
+> low-risk fork, `/preferences` offers to capture the answer as a
+> permanent preference.
+>
+> **Discipline doc:** `.claude/preferences.md` "Decision log
+> discipline" — read it before writing entries.
+> **Owning skill:** `/preferences` (read + prune); skills with
+> known forks append entries directly per the format spec.
+> **Auto-managed.** Do not hand-edit. To clear a fork's tally
+> use `/preferences clear-log <id>`. To capture a tally as a
+> preference, accept the auto-offer or invoke
+> `/preferences set <id> <value>`.
+
+The format below is regenerated when a known-fork answer is
+appended. Aggregate fields recompute from the History list on each
+write.
+
+---
+
+## Active
+
+<!--
+  One section per fork that has been asked at least once and has
+  not been captured as a preference. Sorted alphabetically by ID.
+
+  ## <preference-id>
+
+  - **Tally:** yes <N> / no <N> (streak: <N> <value>)
+  - **Last asked:** <YYYY-MM-DD>
+  - **Last offer:** never  *(or "<YYYY-MM-DD> declined (cooldown: N decisions remaining)" or "<YYYY-MM-DD> declined (cooldown expired)" or "<YYYY-MM-DD> accepted — see preferences.md")*
+  - **Tier:** <low-risk | high-risk>
+
+  ### History
+
+  - <YYYY-MM-DD> <handle>: <value> [— <context>]
+  - ...
+
+  History is prepend (newest first). Aggregate fields recompute on
+  each write.
+-->
+
+*(no decisions logged yet — this file populates as skills ask
+preference-eligible questions and the user answers)*
+
+---
+
+## Captured (archive)
+
+<!--
+  Forks whose tallies were captured as preferences (via auto-offer
+  acceptance or explicit `/preferences set`). Full history is
+  preserved here for audit even though the active tally is no
+  longer maintained.
+
+  ## <preference-id> *(captured <YYYY-MM-DD>)*
+
+  - **Final tally before capture:** yes <N> / no <N>
+  - **Captured as preference:** see `state/preferences.md` entry
+  - **Path:** auto-offer-accepted | explicit-set
+
+  ### History (frozen at capture)
+
+  - <YYYY-MM-DD> ...
+-->
+
+*(no captures yet)*

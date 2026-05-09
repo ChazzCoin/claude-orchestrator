@@ -41,6 +41,24 @@ already in the manifest in one shot), use `bin/setup` instead.
 - **Path is convention, not configuration.** Sub-repos always live at
   `repos/<name>/` relative to the orchestrator root. Don't ask the
   user for a path.
+- **Shared-channel scaffold is opt-in, via the standard PR flow.**
+  After the manifest entry and clone succeed, offer to scaffold
+  `<sub>/.claude/shared/` (the durable two-way per-repo channel —
+  see [`kit/templates/sub-repo-shared/README.md`](../../templates/sub-repo-shared/README.md))
+  via a `chore/orch-init-shared` PR. User declines or accepts; if
+  declines, the channel can be created lazily later.
+- **Preferences-aware.** Two known forks in this skill:
+  - Step 11 (the shared-scaffold offer) → preference ID
+    `auto-scaffold-shared-on-register` (low-risk).
+  - The non-kit install-claude-kit offer (mentioned under
+    [`sub-projects.md`](../../sub-projects.md) "Two flavors") →
+    preference ID `auto-install-kit-on-non-kit-register` (low-risk).
+
+  Both follow the recipe at
+  [`.claude/preferences.md`](../../preferences.md) "Skill recipe
+  at a known fork": read `state/preferences.md` first; apply
+  silently with disclosure if found; otherwise ask, log to
+  `state/decision-log.md`, and run the streak-threshold offer.
 
 ## Process
 
@@ -116,10 +134,97 @@ already in the manifest in one shot), use `bin/setup` instead.
     sub-repo is checked out under the orchestrator's workspace, the
     orchestrator root is `../../`.
 
-    When working on a task, also check `.claude/active-migrations.md`
-    in this repo — it lists open cross-repo migrations affecting this
-    codebase.
+    Before working a task, follow the orchestrator's developer
+    pre-flight checklist at `../../.claude/governance/dev-preflight.md`
+    (relative to this sub-repo's root; the orchestrator is two
+    directories up).
+
+    On every session start, read:
+    - `.claude/active-*.md` — orchestrator notices (open migrations,
+      open features, and any other auto-managed concerns affecting
+      this repo)
+    - `.claude/shared/inbox.md` — durable repo inbox (messages from
+      the orchestrator or prior sessions)
+    - `.claude/shared/notes.md` — durable shared notes for this repo
     ```
+
+11. **Offer to scaffold the durable shared-context channel.** This
+    is a preferences-aware fork (ID
+    `auto-scaffold-shared-on-register`, low-risk).
+
+    **Preferences-recipe step 1 (read):** check
+    `state/preferences.md` for the ID. If found:
+    - Apply silently — proceed to scaffold without asking.
+    - **First apply per session:** disclose
+      > "ℹ Per preference `auto-scaffold-shared-on-register` (set
+      > <date> by <handle>: <evidence>), scaffolding shared/
+      > automatically. Revoke:
+      > `/preferences revoke auto-scaffold-shared-on-register`"
+
+    If not found, ask:
+
+    > "Want me to scaffold `<sub>/.claude/shared/` now? That's the
+    > durable two-way per-repo channel — `architecture.md`,
+    > `inbox.md`, `notes.md`, `references.md`. I'll open a PR
+    > (`chore/orch-init-shared`) so you can review before merge.
+    > You can also skip — the files can be created lazily later."
+
+    **Preferences-recipe step 4 (log):** after the user answers,
+    append to `state/decision-log.md`:
+    `- <today> <handle>: <yes|no> — <repo-name>` under section
+    `## auto-scaffold-shared-on-register`.
+
+    **Preferences-recipe step 5 (offer threshold):** if streak ≥ 3
+    same-answer and no active cooldown, prompt:
+
+    > "I've seen you answer `<value>` to this 3 times in a row.
+    > Want me to remember it as a preference and stop asking?
+    > [yes / no]"
+
+    On `yes` → write preference, archive the log section.
+    On `no`/silence → set cooldown of 5 decisions in the log entry.
+
+    If user declines the original scaffold (regardless of capture
+    flow), skip to step 12.
+
+    If user accepts (or preference applied), render each of the
+    four files from
+    [`kit/templates/sub-repo-shared/`](../../templates/sub-repo-shared/)
+    by substituting placeholders:
+
+    - `{{REPO_NAME}}` → the sub-repo's name
+    - `{{TIMESTAMP}}` → current ISO-8601 UTC
+    - `{{DATE}}` → current `YYYY-MM-DD`
+
+    Then, in `repos/<name>/`:
+
+    ```sh
+    git -C repos/<name> checkout main           # or default branch
+    git -C repos/<name> pull
+    git -C repos/<name> checkout -b chore/orch-init-shared
+    mkdir -p repos/<name>/.claude/shared
+    # write the four rendered files into .claude/shared/
+    git -C repos/<name> add .claude/shared/
+    git -C repos/<name> commit -m "orch: scaffold .claude/shared/ for durable two-way context"
+    git -C repos/<name> push -u origin chore/orch-init-shared
+    gh pr create -R <git_remote> --title "orch: scaffold .claude/shared/" \
+      --body "Bootstraps the durable two-way per-repo context channel.
+
+    Files added:
+    - .claude/shared/architecture.md — living architecture doc
+    - .claude/shared/inbox.md — durable repo inbox
+    - .claude/shared/notes.md — durable shared notes
+    - .claude/shared/references.md — curated URLs
+
+    See orchestrator governance: kit/templates/sub-repo-shared/README.md
+    and kit/governance/dev-preflight.md."
+    ```
+
+    Show the user the PR URL. They merge when ready. **Don't
+    auto-merge.**
+
+12. Done. Summarize what was created (manifest entry, state file,
+    clone, optional shared scaffold PR) and surface next steps.
 
 ## Style rules
 
@@ -132,8 +237,12 @@ already in the manifest in one shot), use `bin/setup` instead.
 
 ## What you must NOT do
 
-- **Don't write into the sub-repo.** Suggest the CLAUDE.md addition;
-  let the user do it.
+- **Don't write into the sub-repo *except* via the optional shared
+  scaffold PR (step 11), and only with explicit user consent.** All
+  other writes — including the suggested CLAUDE.md addition — are
+  the user's to make.
+- **Don't auto-merge the shared scaffold PR.** Open it, surface the
+  URL, let the user review and merge.
 - **Don't auto-run /sync-check.** The user does that next if they
   want.
 - **Don't fabricate the git remote URL.** Verify with `git ls-remote`.
@@ -142,6 +251,9 @@ already in the manifest in one shot), use `bin/setup` instead.
 - **Don't proceed if `repos/<name>/` exists with a different remote.**
   That's a name collision — surface it to the user, let them rename
   or remove the conflicting checkout.
+- **Don't scaffold `shared/` if it already exists in the sub-repo's
+  default branch.** Check before the offer; if any of the four
+  files already exist, skip the offer and tell the user.
 
 ## When NOT to use this skill
 
@@ -162,4 +274,7 @@ already in the manifest in one shot), use `bin/setup` instead.
 `repos/<name>/` is a working git checkout (or the user has been told
 why the clone failed and how to retry). The user has been shown the
 suggested `CLAUDE.md` addition for that repo and can copy it in when
-they choose. No commits to the orchestrator, no remote changes.
+they choose. The shared-channel scaffold has been offered; if
+accepted, a `chore/orch-init-shared` PR is open in the sub-repo
+awaiting user review. No commits to the orchestrator, no automatic
+merges in the sub-repo.

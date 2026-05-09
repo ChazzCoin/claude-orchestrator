@@ -88,6 +88,33 @@ Latest content read from `<sub>/.claude/active.md`:
 _(populate — full file content or relevant excerpt)
 ```
 
+## Proposals *(if `proposals/<name>/` present)*
+
+Orchestrator-side staging area for tasks and phases not yet
+committed to this sub-repo. See
+[`../../../proposals/README.md`](../../../proposals/README.md).
+
+- **Backlog (drafts):** <count> *(populate from `proposals/<name>/backlog/*.md`)*
+- **Promoted (archive):** <count> *(populate from `proposals/<name>/promoted/*.md`)*
+- **Retired (archive):** <count> *(populate from `proposals/<name>/retired/*.md`)*
+- **Phases proposed:** <count> *(populate from `proposals/<name>/PHASES.md`)*
+
+If no proposals directory exists yet for this repo, drafts are
+created lazily by `/propose new`.
+
+## Shared context *(if `<sub>/.claude/shared/` present)*
+
+Durable two-way per-repo files (see
+[`templates/sub-repo-shared/README.md`](../../templates/sub-repo-shared/README.md)).
+The orchestrator reads these on `/sync-check` and may append to
+`shared/inbox.md`, `shared/notes.md`, or `shared/references.md`
+when authoring features that affect this repo.
+
+- **Architecture:** `<sub>/.claude/shared/architecture.md` — present: yes / no, last touched: <YYYY-MM-DD>
+- **Repo inbox:** `<sub>/.claude/shared/inbox.md` — present: yes / no, last entry: <YYYY-MM-DD>, unread to orchestrator: <count>
+- **Notes:** `<sub>/.claude/shared/notes.md` — present: yes / no, last touched: <YYYY-MM-DD>
+- **References:** `<sub>/.claude/shared/references.md` — present: yes / no, last touched: <YYYY-MM-DD>
+
 ## Notes
 
 *The orchestrator preserves this section across sync. Use for:

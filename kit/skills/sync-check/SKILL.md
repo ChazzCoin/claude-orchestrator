@@ -83,7 +83,31 @@ exists.
    - Drift section: untracked branches, untracked commits, stale
      migrations
 
-6. Surface a short summary to the user — counts of each issue type,
+6. **Refresh per-sub-repo state files** at `state/sub-repos/<name>.md`.
+   For each registered sub-repo, regenerate the auto-managed
+   sections of its state file from
+   [`state/sub-repos/_template.md`](../../state/sub-repos/_template.md).
+   In particular:
+   - **Current state** section: branch, HEAD, uncommitted, open PRs,
+     active task / phase / advertisement.
+   - **Affecting this repo:** open migrations / features / ADRs /
+     risks / incidents whose `affects:` lists include this repo.
+   - **Sub-kit advertisement:** content of
+     `repos/<name>/.claude/active.md` if present.
+   - **Proposals** *(if `proposals/<name>/` present):* counts from
+     `proposals/<name>/{backlog,promoted,retired}/*.md` and from
+     `proposals/<name>/PHASES.md` (count phases proposed; flag any
+     marked retired).
+   - **Shared context** *(if `repos/<name>/.claude/shared/` present
+     in the local clone):* per-file presence + last-touched
+     date for `architecture.md`, `inbox.md`, `notes.md`,
+     `references.md`. For `inbox.md`, parse `## ` headings and
+     report the most recent timestamp.
+
+   Preserve the **Notes** section at the bottom — that's
+   hand-edited and never overwritten.
+
+7. Surface a short summary to the user — counts of each issue type,
    what to look at first.
 
 ## Output structure for state/sync-status.md

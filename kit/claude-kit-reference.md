@@ -53,7 +53,13 @@ this shape:
     ├── web-task-rules.md           # platform extension (if web work)
     ├── ios-conventions.md          # platform conventions reference (if iOS)
     ├── active-migrations.md        # written by orchestrator's /migration
+    ├── active-features.md          # written by orchestrator's /feature
     ├── active.md                   # voluntary advertisement to orchestrator
+    ├── shared/                     # durable two-way per-repo context
+    │   ├── architecture.md         # living architecture doc
+    │   ├── inbox.md                # repo-bound message thread
+    │   ├── notes.md                # freeform shared memory
+    │   └── references.md           # curated URLs
     └── skills/                     # slash commands (synced from kit)
         ├── audit/
         ├── backlog/
@@ -202,6 +208,40 @@ Written by the orchestrator's `/migration` skill. Format spec at
 Sub-kit reads on session start per claude-kit's `task-rules.md`
 "Active orchestrator notices" rule.
 
+### `<sub>/.claude/active-features.md`
+
+Written by the orchestrator's `/feature` skill. Format spec at
+[`kit/templates/sub-repo-notices/features.md.template`](templates/sub-repo-notices/features.md.template).
+Lists open cross-cutting features (`status: planning` or
+`in-progress`) whose `affects:` includes this repo. Same
+auto-managed discipline as `active-migrations.md` — regenerated
+wholesale, deleted on empty. Sub-kit reads on session start.
+
+### `<sub>/.claude/shared/`
+
+Durable two-way per-repo context channel. Different discipline
+from `active-<concern>.md`: hand-edited (or appended), bidirectional
+(both orchestrator and sub-kit write), never auto-regenerated.
+Templates at [`kit/templates/sub-repo-shared/`](templates/sub-repo-shared/);
+README at [`kit/templates/sub-repo-shared/README.md`](templates/sub-repo-shared/README.md).
+Sub-kit reads `shared/inbox.md` and `shared/notes.md` on session
+start per the dev pre-flight checklist
+([`kit/governance/dev-preflight.md`](governance/dev-preflight.md)
+step 2).
+
+### Orchestrator-side proposal staging *(not in the sub-repo)*
+
+The orchestrator may stage proposed phases and tasks for this repo
+at `proposals/<this-repo>/` in the orchestrator before committing
+them to `<sub>/tasks/`. The sub-kit doesn't see this directly —
+proposals appear in the sub-repo only at promotion time, as a
+standard `chore/orch-task-NNN-<slug>` or `chore/orch-phase-<id>`
+PR. The promoted task spec body conforms to the sub-kit's
+`task-template.md` shape; reference back to the proposal lives in
+the PR body.
+
+Reference: [`../proposals/README.md`](../proposals/README.md).
+
 ### `<sub>/.claude/active.md`
 
 Voluntary advertisement from the sub-kit to the orchestrator. Read
@@ -277,6 +317,108 @@ The orchestrator may surface a sub-kit's recent closing report
 when reading `<sub>/tasks/AUDIT.md` for context — the AUDIT entry
 typically references the PR which has the closing report in its
 body.
+
+---
+
+## Required updates to claude-kit for orchestrator v0.11.0
+
+The orchestrator's v0.11.0 release introduces several signals
+claude-kit consumes on session start. For full end-to-end
+functionality, claude-kit's `task-rules.md` and related files need
+the following updates. **Without these, the orchestrator side
+works (writes notices, drafts inboxes), but sub-kit sessions don't
+read or respond to them.**
+
+### 1. `task-rules.md` "Active orchestrator notices" — add active-features.md
+
+Currently the rule reads only `<sub>/.claude/active-migrations.md`
+on session start. Update to read **all** files matching
+`<sub>/.claude/active-*.md` (one per concern; v0.11.0 ships
+migrations + features; future concerns add lazily). Render unread
+or new notices to the user; surface counts in the session-start
+summary.
+
+### 2. `task-rules.md` — add shared/ channel to session-start reads
+
+New section "Durable shared context (per-repo memory)":
+
+> On session start, also read:
+>
+> - `<sub>/.claude/shared/inbox.md` — append-only repo inbox.
+>   Compare entry timestamps against last-session marker (kept in
+>   gitignored local-config like /inbox does for the orchestrator).
+>   Surface unread entries.
+> - `<sub>/.claude/shared/notes.md` — durable shared memory.
+>   No unread tracking; the dev reads on demand. Mention in the
+>   session-start summary that it exists.
+> - `<sub>/.claude/shared/architecture.md` and
+>   `<sub>/.claude/shared/references.md` — read on demand during
+>   pre-flight (per the orchestrator's
+>   `kit/governance/dev-preflight.md` step 5).
+>
+> The dev (or claude-kit's claude on the dev's behalf) may write
+> back to `shared/inbox.md` to leave notes for the orchestrator
+> or for future sessions. Append-only with the same shape as
+> `state/inbox/` (ISO timestamp + sender + subject + body).
+
+### 3. `task-rules.md` — reference orchestrator dev-preflight checklist
+
+Add a pointer to the orchestrator's
+`.claude/governance/dev-preflight.md` (relative path
+`../../.claude/governance/dev-preflight.md` from the sub-repo) as
+the canonical pre-flight discipline that applies to dev work in
+sub-repos. Claude-kit's existing pre-flight discipline (if any)
+becomes the platform-specific extension — not replaced, just
+nested under the orchestrator's general checklist.
+
+### 4. `task-template.md` — extended required sections
+
+The orchestrator's `kit/governance/task-spec-shape.md` now
+specifies these required body sections in every task spec
+(orchestrator drafts already conform):
+
+- User request
+- Why
+- **Assumptions** *(new)* — the doer's restatement
+- Technical breakdown
+- Acceptance criteria
+- **Out of scope** *(new)*
+- **Contract impact** *(new)*
+- References
+- **Definition of done** *(new)* — beyond AC
+
+Update claude-kit's `task-template.md` to include all of these.
+Existing sub-repo tasks remain valid (governance applies to new
+specs going forward).
+
+### 5. New file expected: `<sub>/.claude/active-features.md`
+
+Auto-written by the orchestrator's `/feature` skill (v0.11.0).
+Format spec at
+[`kit/templates/sub-repo-notices/features.md.template`](templates/sub-repo-notices/features.md.template).
+Same auto-managed discipline as `active-migrations.md` (regenerated
+wholesale, deleted on empty).
+
+### 6. New directory expected: `<sub>/.claude/shared/`
+
+Created by the orchestrator's `/register` step 11 scaffold (when
+the user accepts the offer). Contains four files: `architecture.md`,
+`inbox.md`, `notes.md`, `references.md`. Format specs at
+[`kit/templates/sub-repo-shared/`](templates/sub-repo-shared/).
+Hand-edited (or appended); never auto-regenerated.
+
+### Verification after claude-kit updates
+
+After applying these changes in claude-kit, verify in a fresh
+session:
+
+- Sub-kit reads and surfaces both `active-migrations.md` and
+  `active-features.md` if either is present.
+- Sub-kit reads `shared/inbox.md` and surfaces unread entries.
+- Sub-kit reads `shared/notes.md` and mentions it as available.
+- Sub-kit's task-template generates new specs with all 9
+  required body sections (per
+  `kit/governance/task-spec-shape.md`).
 
 ---
 
