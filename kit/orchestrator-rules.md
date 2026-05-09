@@ -24,6 +24,7 @@ get read every session — there's a priority order.
 - [`AUDIT.md`](AUDIT.md) — last 5–10 entries. Tells you what's recently changed.
 - [`state/manifest.md`](state/manifest.md) — registered sub-repos + last-known HEADs.
 - [`state/last-fetch.json`](state/last-fetch.json) — timestamp of the last `/refresh` against sub-repo remotes. If missing or older than 24h, surface that the picture may be stale and suggest `/refresh` before any compiler skill (`/status`, `/sync-check`, `/roadmap`, `/tasks`). Don't refuse to run those skills; just warn.
+- [`.claude/skill-architecture.md`](.claude/skill-architecture.md) — discipline for scripted vs interpretive vs mixed skills. Read when designing a new skill or converting one. Scripted skills are thin wrappers around `bin/<name>` shell scripts; the script is the spec.
 
 ### On-demand — read when relevant
 

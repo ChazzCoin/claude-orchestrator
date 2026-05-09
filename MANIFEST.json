@@ -53,6 +53,18 @@
         "note": "Collaborator-onboarding script — clones registered sub-repos into repos/<name>/. Synced from kit so improvements propagate; instances get the latest version on /sync."
       },
       {
+        "from": "bin/refresh",
+        "to": "bin/refresh",
+        "policy": "file-replace-executable",
+        "note": "Refresh script — fetches origin for every cloned sub-repo, writes state/last-fetch.json with ahead/behind/dirty per repo. Driven by /refresh skill; user-runnable directly. Synced from kit."
+      },
+      {
+        "from": "kit/skill-architecture.md",
+        "to": ".claude/skill-architecture.md",
+        "policy": "file-replace",
+        "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions. Generic across instances."
+      },
+      {
         "from": "kit/skills/",
         "to": ".claude/skills/",
         "policy": "directory-mirror",

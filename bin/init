@@ -92,6 +92,19 @@ if [ -f "$KIT_DIR/bin/setup" ]; then
   echo "    script:   bin/setup"
 fi
 
+# bin/refresh → bin/refresh (sub-repo fetch script, driven by /refresh skill)
+if [ -f "$KIT_DIR/bin/refresh" ]; then
+  cp "$KIT_DIR/bin/refresh" "$TARGET/bin/refresh"
+  chmod +x "$TARGET/bin/refresh"
+  echo "    script:   bin/refresh"
+fi
+
+# kit/skill-architecture.md → .claude/skill-architecture.md
+if [ -f "$KIT_DIR/kit/skill-architecture.md" ]; then
+  cp "$KIT_DIR/kit/skill-architecture.md" "$TARGET/.claude/skill-architecture.md"
+  echo "    rules:    .claude/skill-architecture.md"
+fi
+
 mkdir -p "$TARGET/.claude/skills"
 if [ -d "$KIT_DIR/kit/skills" ]; then
   for skill in "$KIT_DIR/kit/skills"/*/; do
