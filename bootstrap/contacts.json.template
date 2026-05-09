@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "_description": "Central contacts directory. Source of truth for people the orchestrator may communicate with on behalf of the CTO. Read by bin/contacts; consumed by bin/send-email and other communication scripts. Shape: {contacts: {<handle>: {display_name, emails[], preferred_email, role, tags[], notes}}}.",
+  "contacts": {}
+}

@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+#
+# bin/send-email — draft (and optionally send) an email.
+#
+# Output: by default writes a .eml file to state/drafts/ and prints
+#         the path. With --send, also transmits via SMTP using
+#         credentials from .claude/integrations-secrets.json
+#         (gitignored). Pattern 1 hero card on success.
+#
+# Usage:
+#   bin/send-email --to <handle-or-email> [--to ...] \
+#                  [--cc <handle-or-email>] \
+#                  --subject "..." \
+#                  --body-file PATH \
+#                  [--from EMAIL] \
+#                  [--send] \
+#                  [--json]
+#
+# Args:
+#   --to            Contact handle from state/contacts.json OR raw email.
+#                   Repeatable for multiple recipients.
+#   --cc            Same; CC recipient(s).
+#   --subject       Subject line.
+#   --body-file     Path to a markdown/plaintext file with the body.
+#   --from          Override the From: address. Defaults to
+#                   integrations.json email.from_address if set.
+#   --send          Actually transmit via SMTP (requires
+#                   .claude/integrations-secrets.json with email
+#                   credentials). Without --send, only drafts.
+#   --json          Output result as JSON.
+#
+# Behavior:
+#   1. Resolves each recipient: looks up handle in state/contacts.json;
+#      if it's an email address (contains @), uses it directly;
+#      otherwise errors.
+#   2. Builds RFC 2822 message with proper headers (From, To, CC,
+#      Subject, Date, Message-ID, MIME-Version, Content-Type).
+#   3. Writes a .eml file to state/drafts/<timestamp>-<slug>.eml
+#      (always — both for draft-only and send modes; preserves
+#      audit trail).
+#   4. If --send: opens SMTP connection, authenticates via secrets,
+#      transmits. Errors out if secrets missing.
+#   5. Outputs the draft path + (if sent) confirmation.
+#
+# This is the first integration ship. Future scripts (calendar,
+# slack, etc.) follow the same shape: read declared config from
+# state/integrations.json, secrets from
+# .claude/integrations-secrets.json, do the deed.
+
+import argparse
+import json
+import re
+import smtplib
+import ssl
+import sys
+from datetime import datetime
+from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
+from pathlib import Path
+
+ORCH_ROOT = Path(__file__).resolve().parent.parent
+CONTACTS_FILE = ORCH_ROOT / "state" / "contacts.json"
+INTEGRATIONS_FILE = ORCH_ROOT / "state" / "integrations.json"
+SECRETS_FILE = ORCH_ROOT / ".claude" / "integrations-secrets.json"
+DRAFTS_DIR = ORCH_ROOT / "state" / "drafts"
+
+
+def err(msg, json_mode=False):
+    if json_mode:
+        print(json.dumps({"ok": False, "error": msg}))
+    else:
+        print(f"✗ {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def load_json(path, default=None):
+    if not path.exists():
+        return default if default is not None else {}
+    return json.loads(path.read_text())
+
+
+def resolve_recipient(handle, contacts, json_mode):
+    """handle is either a contact handle (looks up) or a raw email."""
+    if "@" in handle:
+        return handle, None  # raw email; no display name
+    if handle in contacts:
+        c = contacts[handle]
+        email = c.get("preferred_email") or (c.get("emails") or [None])[0]
+        if not email:
+            err(f"contact '{handle}' has no email", json_mode)
+        return email, c.get("display_name")
+    err(f"unknown contact handle (and not an email): {handle}", json_mode)
+
+
+def slug_from_subject(subject, max_len=40):
+    s = re.sub(r"[^a-zA-Z0-9\s-]", "", subject).strip().lower()
+    s = re.sub(r"\s+", "-", s)
+    return s[:max_len] or "untitled"
+
+
+def main():
+    p = argparse.ArgumentParser(description="draft and optionally send email")
+    p.add_argument("--to", action="append", required=True,
+                   help="contact handle or email (repeatable)")
+    p.add_argument("--cc", action="append", default=[],
+                   help="contact handle or email (repeatable)")
+    p.add_argument("--subject", required=True)
+    p.add_argument("--body-file", required=True, dest="body_file")
+    p.add_argument("--from", dest="from_email", default=None)
+    p.add_argument("--from-name", dest="from_name", default=None)
+    p.add_argument("--send", action="store_true")
+    p.add_argument("--json", action="store_true")
+    args = p.parse_args()
+
+    json_mode = args.json
+
+    # Load contacts
+    contacts = load_json(CONTACTS_FILE).get("contacts", {})
+
+    # Resolve recipients
+    to_emails = []
+    to_names = []
+    for handle in args.to:
+        email, name = resolve_recipient(handle, contacts, json_mode)
+        to_emails.append(email)
+        to_names.append(name or handle)
+
+    cc_emails = []
+    for handle in args.cc:
+        email, _ = resolve_recipient(handle, contacts, json_mode)
+        cc_emails.append(email)
+
+    # Body
+    body_path = Path(args.body_file)
+    if not body_path.exists():
+        err(f"body file not found: {args.body_file}", json_mode)
+    body = body_path.read_text()
+
+    # From address
+    from_email = args.from_email
+    from_name = args.from_name
+    if not from_email or not from_name:
+        integrations = load_json(INTEGRATIONS_FILE).get("integrations", {})
+        email_cfg = integrations.get("email") or {}
+        # Skip if it's just the example-shape placeholder
+        if not from_email and email_cfg.get("from_address") and "_example" not in str(email_cfg):
+            from_email = email_cfg.get("from_address")
+        if not from_name and email_cfg.get("from_display_name"):
+            from_name = email_cfg.get("from_display_name")
+
+    if not from_email:
+        err("no --from and no email.from_address in state/integrations.json", json_mode)
+
+    # Build message
+    msg = EmailMessage()
+    if from_name:
+        msg["From"] = f"{from_name} <{from_email}>"
+    else:
+        msg["From"] = from_email
+    msg["To"] = ", ".join(to_emails)
+    if cc_emails:
+        msg["Cc"] = ", ".join(cc_emails)
+    msg["Subject"] = args.subject
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid()
+    msg.set_content(body)
+
+    # Write draft (always — audit trail)
+    DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    slug = slug_from_subject(args.subject)
+    draft_path = DRAFTS_DIR / f"{ts}-{slug}.eml"
+    draft_path.write_bytes(bytes(msg))
+
+    sent = False
+    send_error = None
+    if args.send:
+        if not SECRETS_FILE.exists():
+            err(f"--send requires {SECRETS_FILE} (gitignored). Add SMTP credentials to enable real sending.", json_mode)
+        secrets = json.loads(SECRETS_FILE.read_text())
+        email_secrets = secrets.get("email", {})
+        if not email_secrets:
+            err(f"no 'email' section in {SECRETS_FILE}", json_mode)
+        try:
+            server_host = email_secrets.get("smtp_server")
+            server_port = email_secrets.get("smtp_port", 587)
+            username = email_secrets.get("username") or from_email
+            password = email_secrets["password"]
+
+            ctx = ssl.create_default_context()
+            with smtplib.SMTP(server_host, server_port) as server:
+                server.starttls(context=ctx)
+                server.login(username, password)
+                server.send_message(msg)
+            sent = True
+        except Exception as e:
+            send_error = str(e)
+
+    result = {
+        "ok": True,
+        "to": to_emails,
+        "to_names": to_names,
+        "cc": cc_emails,
+        "subject": args.subject,
+        "from": msg["From"],
+        "draft_path": str(draft_path),
+        "sent": sent,
+    }
+    if send_error:
+        result["ok"] = False
+        result["send_error"] = send_error
+
+    if json_mode:
+        print(json.dumps(result, indent=2))
+    else:
+        action = "sent ✓" if sent else "drafted (not sent)"
+        print(f"  → {action}")
+        print(f"    to: {', '.join(to_emails)}")
+        if cc_emails:
+            print(f"    cc: {', '.join(cc_emails)}")
+        print(f"    subject: {args.subject}")
+        print(f"    draft: {draft_path}")
+        if send_error:
+            print(f"    send_error: {send_error}", file=sys.stderr)
+            sys.exit(1)
+        if not sent:
+            print(f"    (use --send with .claude/integrations-secrets.json to actually send)")
+
+    sys.exit(0 if (sent or not args.send) else 1)
+
+
+if __name__ == "__main__":
+    main()

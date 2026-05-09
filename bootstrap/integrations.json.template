@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "_description": "Declared integrations the orchestrator is wired to. Public, committed config — no secrets. Each integration entry says what's connected (provider, account, default-from, etc.); secrets for the integration live separately in .claude/integrations-secrets.json (gitignored).",
+  "integrations": {
+    "email": {
+      "_doc": "Optional. When configured, bin/send-email --send will SMTP-send. Without this, bin/send-email always drafts to state/drafts/.",
+      "_example_shape": {
+        "provider": "gmail | outlook | smtp",
+        "from_address": "you@example.com",
+        "from_display_name": "Your Name",
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587
+      }
+    },
+    "calendar": {
+      "_doc": "Placeholder for v0.14+ calendar integration.",
+      "_example_shape": {
+        "provider": "google | outlook",
+        "calendar_id": "primary"
+      }
+    }
+  }
+}
