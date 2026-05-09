@@ -1,0 +1,48 @@
+# {{REPO_NAME}} — repo inbox
+
+> **Durable, append-only.** Bidirectional message thread for this
+> repo. The orchestrator and the sub-kit (and humans) leave notes
+> here for each other. Read on session start; never regenerated.
+>
+> **Different from `/inbox`** — that's per-person. This is per-repo:
+> messages addressed to "whoever's working in {{REPO_NAME}} right
+> now."
+>
+> **Format:** ISO-8601 UTC timestamp, sender, subject, body. New
+> entries on top.
+
+---
+
+<!--
+  Append new messages at the top, under this comment:
+
+  ## YYYY-MM-DDTHH:MM:SSZ — <sender> — <one-line subject>
+
+  Body markdown. Code blocks, links, lists fine. End with a
+  `---` separator.
+
+  Sender conventions:
+  - `orchestrator` — the company orchestrator left this note
+  - `sub-kit` — this repo's claude-kit instance left this note
+  - `<handle>` — a specific human (e.g. `chazz`)
+
+  Don't delete entries. If something is resolved, leave the entry
+  and append a follow-up entry. The thread is the value.
+
+  Don't put time-sensitive state here. Use:
+  - `<sub>/.claude/active-<concern>.md` for current state
+  - `<sub>/.claude/shared/notes.md` for durable observations
+  - this file for *messages* — things addressed to a future reader
+-->
+
+## {{TIMESTAMP}} — orchestrator — repo inbox bootstrapped
+
+This file was created when {{REPO_NAME}} was registered with the
+orchestrator. It's the durable message thread for this repo.
+
+- Append new entries on top.
+- Both the orchestrator and the sub-kit may write here.
+- Read on every session start (see `governance/dev-preflight.md`
+  step 2).
+
+---

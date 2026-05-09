@@ -1,8 +1,15 @@
 # Sub-repo notice templates
 
-Templates for files the orchestrator writes into each sub-repo's
-`.claude/` directory. These are the **only files the orchestrator
-writes outside its own repo** — the cross-repo write path.
+Templates for **auto-managed** files the orchestrator writes into
+each sub-repo's `.claude/` directory. Each file here corresponds to
+a single concern owned by a single skill, regenerated wholesale on
+each write, and deleted when its content goes empty.
+
+For **durable, hand-edited** per-repo context (architecture notes,
+shared inbox, references), see the sibling
+[`sub-repo-shared/`](../sub-repo-shared/) — different discipline,
+different file pattern, both directions write. The two patterns
+together form the orchestrator's cross-repo write surface.
 
 ## Pattern
 
@@ -57,8 +64,13 @@ this whole pattern is supposed to prevent.
 ## What you must NOT do
 
 - **Don't write to a sub-repo without going through these
-  templates.** Ad-hoc writes from skills produce inconsistent files
-  and break the sub-kit's read contract.
+  templates** (for auto-managed concerns) **or the
+  [`sub-repo-shared/`](../sub-repo-shared/) templates** (for durable
+  hand-edited content). Ad-hoc writes from skills produce
+  inconsistent files and break the sub-kit's read contract.
+- **Don't mix the two patterns in one file.** Auto-regenerated
+  content overwrites hand edits; hand-edited content drifts from
+  auto-managed views of state. One discipline per file.
 - **Don't put project-specific content in a template.** Templates
   are generic across all instances of the orchestrator. Anything
   company-specific belongs in the rendered output, not the

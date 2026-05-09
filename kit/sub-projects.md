@@ -238,6 +238,41 @@ sanctioned write that creates the kit shape in the target.
 Standard PR flow afterward (the init creates files; orchestrator
 opens a PR with all of them so the user can review).
 
+### 5. Shared context — durable two-way per-repo files
+
+For durable hand-edited per-repo memory at `<sub>/.claude/shared/`
+(architecture notes, repo inbox, references, freeform notes). See
+[`templates/sub-repo-shared/README.md`](templates/sub-repo-shared/README.md).
+
+Different discipline from the auto-managed `active-<concern>.md`
+notices: `shared/*.md` is bidirectional, append-friendly,
+hand-edited, never auto-regenerated.
+
+The orchestrator may write here when:
+
+- Leaving a durable note for the repo's next session
+  (`shared/inbox.md`)
+- Recording a reference URL discovered during work
+  (`shared/references.md`)
+- Appending a durable observation worth carrying across sessions
+  (`shared/notes.md`)
+- The user explicitly directs it to record an architectural fact
+  (`shared/architecture.md` — default authorship is the dev or
+  sub-kit, not the orchestrator)
+
+Standard PR flow (these are non-running files):
+
+1. Pull latest main in the sub-repo
+2. Branch: `chore/orch-<YYYY-MM-DD-slug>`
+3. Append or edit the file
+4. PR titled `orch: <one-line summary>`
+5. User approves merge
+
+Bootstrap: when a sub-repo is registered, the `shared/` directory
+may be scaffolded with empty templates so the channel exists. Whether
+`/register` does this automatically is a project decision; the
+default is conservative (offer once, don't auto-scaffold).
+
 ---
 
 ## Code boundary (non-negotiable)

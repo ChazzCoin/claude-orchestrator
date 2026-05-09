@@ -88,6 +88,19 @@ Latest content read from `<sub>/.claude/active.md`:
 _(populate — full file content or relevant excerpt)
 ```
 
+## Shared context *(if `<sub>/.claude/shared/` present)*
+
+Durable two-way per-repo files (see
+[`templates/sub-repo-shared/README.md`](../../templates/sub-repo-shared/README.md)).
+The orchestrator reads these on `/sync-check` and may append to
+`shared/inbox.md`, `shared/notes.md`, or `shared/references.md`
+when authoring features that affect this repo.
+
+- **Architecture:** `<sub>/.claude/shared/architecture.md` — present: yes / no, last touched: <YYYY-MM-DD>
+- **Repo inbox:** `<sub>/.claude/shared/inbox.md` — present: yes / no, last entry: <YYYY-MM-DD>, unread to orchestrator: <count>
+- **Notes:** `<sub>/.claude/shared/notes.md` — present: yes / no, last touched: <YYYY-MM-DD>
+- **References:** `<sub>/.claude/shared/references.md` — present: yes / no, last touched: <YYYY-MM-DD>
+
 ## Notes
 
 *The orchestrator preserves this section across sync. Use for:

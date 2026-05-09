@@ -1,0 +1,52 @@
+# {{REPO_NAME}} — shared notes
+
+> **Durable, hand-edited.** Freeform memory for things specific to
+> this repo that don't fit elsewhere. Both orchestrator and sub-kit
+> read; either may write.
+>
+> **Append entries at the top.** ISO date + author header.
+>
+> **Bootstrapped:** `{{TIMESTAMP}}`
+
+What goes here:
+
+- Repo-specific gotchas worth remembering across sessions
+- Conventions adopted in practice but not yet written into a runbook
+- Findings from debugging that don't warrant a full ADR
+- Working agreements between the orchestrator and the sub-kit
+  ("we settled that X is handled by repo Y, not here")
+- The "I can never remember which env var" reminders
+
+What does NOT go here:
+
+- Current state — that's `active-<concern>.md` or
+  `state/sub-repos/<name>.md`
+- Architectural overview — that's `shared/architecture.md`
+- URLs for external docs — that's `shared/references.md`
+- Messages to a future reader — that's `shared/inbox.md`
+- Decisions worth a permanent record — those are ADRs in
+  `<sub>/docs/decisions/`
+
+When a note here grows up (becomes a real architectural fact, an
+ADR, a runbook), promote it to its proper home and remove from this
+file.
+
+---
+
+<!--
+  Append new entries at the top:
+
+  ## YYYY-MM-DD — <author> — <topic>
+
+  Body markdown. Keep entries short. If something needs a long
+  explanation, it's probably an ADR or a runbook, not a note.
+
+  ---
+-->
+
+## {{DATE}} — bootstrap — file created
+
+`{{REPO_NAME}}/.claude/shared/notes.md` initialized at registration.
+Append durable repo-specific observations here as they come up.
+
+---

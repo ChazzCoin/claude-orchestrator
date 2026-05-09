@@ -65,6 +65,12 @@
         "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions, output-pattern selection requirement. Generic across instances."
       },
       {
+        "from": "kit/governance/",
+        "to": ".claude/governance/",
+        "policy": "directory-mirror",
+        "note": "Phase/task discipline contracts the orchestrator and sub-kits both follow: phases-and-tasks.md, task-spec-shape.md, dev-preflight.md. Generic across instances."
+      },
+      {
         "from": "kit/output-catalogue.md",
         "to": ".claude/output-catalogue.md",
         "policy": "file-replace",
