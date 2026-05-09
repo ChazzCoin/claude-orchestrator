@@ -170,6 +170,81 @@ register the ID in the table at the bottom of this file.
 
 ---
 
+## Skill recipe at a known fork
+
+The exact algorithm a skill follows when it hits a question that
+maps to a registered preference ID. **Every preferences-aware skill
+follows this five-step recipe.** It is the contract that makes the
+preferences + decision-log system actually consumable.
+
+### The five steps
+
+1. **Read `state/preferences.md`.** Look up the preference ID.
+   - **If found in `## Active preferences`** → apply the recorded
+     decision silently. **Disclose on first apply per session** per
+     "Application protocol" above. Skip steps 2–5.
+   - **If found in `## Revoked preferences`** → ignore the
+     revocation; the fork is back to "ask normally." Proceed to
+     step 2.
+   - **If not found** → proceed to step 2.
+
+2. **Ask the question** normally.
+
+3. **After receiving the answer**, apply it (the action the
+   question gates).
+
+4. **Log the decision** to `state/decision-log.md` per "Decision
+   log discipline" above:
+   - Locate or create the fork's `## <id>` section under `## Active`.
+   - Prepend a new entry to the History list:
+     `- <YYYY-MM-DD> <handle>: <value> [— <context>]`
+   - Recompute the aggregate header (tally, streak, last asked).
+   - Decrement the cooldown counter if active; expire it at 0.
+
+5. **Check the offer threshold** for this fork:
+   - **High-risk tier:** never auto-offer regardless of streak.
+     Skill stops here. The user can still set the preference
+     explicitly via `/preferences set`.
+   - **Low-risk tier, streak ≥ 3, no active cooldown:** prompt:
+     > "I've seen you answer `<value>` to this <N> times in a row.
+     > Want me to remember it as a preference and stop asking?
+     > [yes / no]"
+     - **yes** → write the preference entry to
+       `state/preferences.md` (evidence: the user's most recent
+       answer + this offer-acceptance), move the fork's section in
+       the decision log from `## Active` to `## Captured (archive)`,
+       disclose the capture.
+     - **no / silence** → update the fork's `Last offer:` field in
+       the log to `<YYYY-MM-DD> declined (cooldown: 5 decisions remaining)`.
+       Continue.
+   - **Otherwise** (streak < 3 or cooldown active) → stop. No
+     offer.
+
+### What "preferences-aware" means in a skill's SKILL.md
+
+A skill that asks at least one known-fork question is
+preferences-aware. Its SKILL.md must:
+
+- Add a bullet to its **Behavior contract** naming the fork(s) it
+  asks and the preference ID(s) registered for them.
+- Reference this recipe so the skill's prompts implement steps
+  1–5 at the right point in the flow.
+- Not invent its own capture, application, or threshold logic.
+  The recipe is the contract.
+
+### What "preferences-aware" does NOT mean
+
+- It does **not** mean every prompt is a preference fork. Skills
+  ask many one-off questions (which sub-repo, what slug, etc.)
+  that don't generalize and aren't logged.
+- It does **not** mean the skill can write preference entries on
+  its own bypass of `/preferences`. Path 1 (explicit signal) and
+  path 2 (offer accepted) both go through the same write path —
+  the offer's "yes" branch is the only programmatic write
+  preference-aware skills perform.
+
+---
+
 ## Application protocol
 
 When a skill hits a fork that maps to a known preference ID:

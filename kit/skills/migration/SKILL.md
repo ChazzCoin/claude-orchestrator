@@ -80,6 +80,14 @@ The same pattern will apply to future concerns
 - **Write the sub-repo notice files only after user confirmation.**
   Each affected sub-repo gets `.claude/active-migrations.md` updated.
   This is a write into another git repo — confirm before doing it.
+- **Preferences-aware.** The notice-write confirmation in this
+  flow is registered as `auto-write-active-migrations-notices`
+  (low-risk). Follows the recipe at
+  [`.claude/preferences.md`](../../preferences.md) "Skill recipe
+  at a known fork": read `state/preferences.md` first; if found,
+  write notices without re-asking (disclose on first apply per
+  session); otherwise ask normally, log to
+  `state/decision-log.md`, run streak-threshold offer.
 
 ### Process
 

@@ -115,6 +115,14 @@ multi-section notice file.
   `repos/<name>/` doesn't exist, surface that to the user; offer to
   run `bin/setup` or skip the notice for that repo. Don't fail the
   whole flow over one missing clone.
+- **Preferences-aware.** The notice-write confirmation in Step 5
+  of Mode: Open is registered as
+  `auto-write-active-features-notices` (low-risk). Follows the
+  recipe at [`.claude/preferences.md`](../../preferences.md)
+  "Skill recipe at a known fork": read `state/preferences.md`
+  first; if found, write notices without asking (disclose on
+  first apply per session); otherwise ask normally, log to
+  `state/decision-log.md`, run streak-threshold offer.
 
 ## Mode: Open
 

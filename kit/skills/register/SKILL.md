@@ -47,6 +47,18 @@ already in the manifest in one shot), use `bin/setup` instead.
   see [`kit/templates/sub-repo-shared/README.md`](../../templates/sub-repo-shared/README.md))
   via a `chore/orch-init-shared` PR. User declines or accepts; if
   declines, the channel can be created lazily later.
+- **Preferences-aware.** Two known forks in this skill:
+  - Step 11 (the shared-scaffold offer) → preference ID
+    `auto-scaffold-shared-on-register` (low-risk).
+  - The non-kit install-claude-kit offer (mentioned under
+    [`sub-projects.md`](../../sub-projects.md) "Two flavors") →
+    preference ID `auto-install-kit-on-non-kit-register` (low-risk).
+
+  Both follow the recipe at
+  [`.claude/preferences.md`](../../preferences.md) "Skill recipe
+  at a known fork": read `state/preferences.md` first; apply
+  silently with disclosure if found; otherwise ask, log to
+  `state/decision-log.md`, and run the streak-threshold offer.
 
 ## Process
 
@@ -123,17 +135,33 @@ already in the manifest in one shot), use `bin/setup` instead.
     orchestrator root is `../../`.
 
     Before working a task, follow the orchestrator's developer
-    pre-flight checklist at `kit/governance/dev-preflight.md`.
+    pre-flight checklist at `../../.claude/governance/dev-preflight.md`
+    (relative to this sub-repo's root; the orchestrator is two
+    directories up).
 
     On every session start, read:
-    - `.claude/active-*.md` — orchestrator notices (open migrations
-      and any other auto-managed concerns affecting this repo)
+    - `.claude/active-*.md` — orchestrator notices (open migrations,
+      open features, and any other auto-managed concerns affecting
+      this repo)
     - `.claude/shared/inbox.md` — durable repo inbox (messages from
       the orchestrator or prior sessions)
     - `.claude/shared/notes.md` — durable shared notes for this repo
     ```
 
-11. **Offer to scaffold the durable shared-context channel.** Ask:
+11. **Offer to scaffold the durable shared-context channel.** This
+    is a preferences-aware fork (ID
+    `auto-scaffold-shared-on-register`, low-risk).
+
+    **Preferences-recipe step 1 (read):** check
+    `state/preferences.md` for the ID. If found:
+    - Apply silently — proceed to scaffold without asking.
+    - **First apply per session:** disclose
+      > "ℹ Per preference `auto-scaffold-shared-on-register` (set
+      > <date> by <handle>: <evidence>), scaffolding shared/
+      > automatically. Revoke:
+      > `/preferences revoke auto-scaffold-shared-on-register`"
+
+    If not found, ask:
 
     > "Want me to scaffold `<sub>/.claude/shared/` now? That's the
     > durable two-way per-repo channel — `architecture.md`,
@@ -141,9 +169,26 @@ already in the manifest in one shot), use `bin/setup` instead.
     > (`chore/orch-init-shared`) so you can review before merge.
     > You can also skip — the files can be created lazily later."
 
-    If user declines, skip to step 12.
+    **Preferences-recipe step 4 (log):** after the user answers,
+    append to `state/decision-log.md`:
+    `- <today> <handle>: <yes|no> — <repo-name>` under section
+    `## auto-scaffold-shared-on-register`.
 
-    If user accepts, render each of the four files from
+    **Preferences-recipe step 5 (offer threshold):** if streak ≥ 3
+    same-answer and no active cooldown, prompt:
+
+    > "I've seen you answer `<value>` to this 3 times in a row.
+    > Want me to remember it as a preference and stop asking?
+    > [yes / no]"
+
+    On `yes` → write preference, archive the log section.
+    On `no`/silence → set cooldown of 5 decisions in the log entry.
+
+    If user declines the original scaffold (regardless of capture
+    flow), skip to step 12.
+
+    If user accepts (or preference applied), render each of the
+    four files from
     [`kit/templates/sub-repo-shared/`](../../templates/sub-repo-shared/)
     by substituting placeholders:
 
