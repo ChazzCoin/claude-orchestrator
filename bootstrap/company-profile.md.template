@@ -1,0 +1,67 @@
+# Company profile
+
+The official picture of this company. Structured data the orchestrator
+and any collaborator should be able to consult to understand who we
+are and what we're building.
+
+This file is **instance property** — owned by the company, never
+overwritten by `/sync`. Update by hand as the company evolves.
+
+> **What goes here.** Mission, products, leadership, mottos / brand
+> pillars, current strategic direction. The picture a new hire,
+> investor, advisor, or collaborator needs to understand the company.
+>
+> **What doesn't.** Half-baked thoughts (those go in
+> [`company-notes.md`](company-notes.md)). Stack specifics (those
+> live in [`stack/`](stack/)). People roles + on-call (those live in
+> [`ownership.md`](ownership.md)). Vendor specifics (those live in
+> [`vendors.md`](vendors.md)). Long-arc tech vision (that's
+> [`tech-vision.md`](tech-vision.md)).
+
+## Mission
+
+*One paragraph. Why this company exists. What changes if we succeed.*
+
+_(populate)_
+
+## Products
+
+*What we ship. One subsection per product line.*
+
+### _(product name)_
+
+- **What it is:** _(one-liner)_
+- **Status:** experimental | launched | sunsetting
+- **Audience:** _(who uses it)_
+- **Differentiator:** _(why this and not the alternatives)_
+
+## Leadership
+
+*Founders, exec team, advisors. Not on-call assignments — that's
+[`ownership.md`](ownership.md). This is "who's at the helm."*
+
+- **_(role)_:** _(name, joined, one-line brief)_
+
+## Mottos / pillars
+
+*Things we say internally that capture how we operate. Short. Each
+one is load-bearing — they shape decisions.*
+
+- _(populate)_
+
+## Strategic direction (current)
+
+*Where the company is steering — the 6-to-12-month picture. Updated
+deliberately, not constantly.*
+
+- **Current focus:** _(one paragraph)_
+- **Bets we're making:** _(what we're betting on)_
+- **Bets we're declining:** _(what we're explicitly not chasing)_
+- **Last updated:** _(YYYY-MM-DD)_
+
+## External-facing summary
+
+*The version we tell the world — press, proposals, investor decks.
+Should match the website but slightly more honest (this is internal).*
+
+_(populate)_

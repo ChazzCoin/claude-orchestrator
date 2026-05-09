@@ -1,0 +1,40 @@
+# Important events
+
+Conferences, demos, board meetings, customer reviews, product launches
+— anything time-sensitive worth remembering. The orchestrator surfaces
+upcoming events in `/status` and `/brief` to keep the company aware of
+what's coming.
+
+This file is **instance property** — owned by the company, never
+overwritten by `/sync`. Add events by hand.
+
+## Format
+
+```
+## <YYYY-MM-DD> · <title>
+- **Type:** conference | demo | meeting | launch | review | other
+- **When:** <YYYY-MM-DD HH:MM in local time, or date range>
+- **Where:** <location or link>
+- **Who:** <attendees / audience>
+- **Goal:** <one-line — what success looks like>
+- **Prep:** <anything we need to ready>
+- **Notes:** <freeform>
+```
+
+When an event passes, move it down to **Past** — don't delete. Old
+past events (>12 months) can be archived to `events-archive.md` or
+trimmed.
+
+## Upcoming
+
+*Newest at the top, soonest at the bottom.*
+
+_(populate)_
+
+---
+
+## Past
+
+*Events that have happened. Newest first.*
+
+_(populate as events conclude)_

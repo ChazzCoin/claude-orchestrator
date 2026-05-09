@@ -1,0 +1,44 @@
+# Company notes
+
+The unofficial pad. Half-formed thoughts, internal discussions worth
+remembering, potential directions, things we're chewing on but haven't
+committed to.
+
+This file is **instance property** — owned by the company, never
+overwritten by `/sync`. Append-mostly; archive old entries when they
+stop being useful.
+
+> **What goes here.** Anything that informs strategic thinking but
+> isn't formal yet — early product ideas, market observations,
+> internal cultural notes, lessons learned, things to revisit later.
+>
+> **What doesn't.** Architectural decisions (those go in
+> [`decisions/`](decisions/)). Risks (those go in
+> [`risks/`](risks/)). Incidents (those go in
+> [`incidents/`](incidents/)). Active open questions (those go in
+> [`open-questions.md`](open-questions.md)). Official company facts
+> (those go in [`company-profile.md`](company-profile.md)).
+
+## Format
+
+Each entry: a date heading, freeform content underneath. Newest at
+the top. Subject line optional but useful for skim-reading later.
+
+```
+## 2026-05-08 — <optional subject>
+
+Whatever you're thinking. As long as you want.
+
+## 2026-05-01 — earlier topic
+
+Earlier note.
+```
+
+When something here graduates to a decision, risk, or active
+roadmap item, move it to the right artifact and remove it here (or
+leave a stub line saying "→ moved to <where>"). Keeps the pad from
+becoming a graveyard of stale ideas.
+
+## Notes
+
+_(populate)_

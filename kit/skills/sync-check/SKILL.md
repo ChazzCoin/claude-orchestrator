@@ -20,19 +20,42 @@ This skill **regenerates** state. It does not author anything new.
 - **Surface drift loudly.** A sub-repo with commits beyond what any
   migration tracks is a signal — note it explicitly.
 - **Note query failures honestly.** If `gh` isn't authenticated or a
-  repo path is wrong, say so; don't write fake state.
+  repo can't be reached, say so; don't write fake state.
+- **Surface stale-fetch warning.** Read `state/last-fetch.json` at
+  the start. If missing or >24h old, prepend a warning to the
+  output: "Last refresh: <duration> ago — consider `/refresh` for
+  fresh sub-repo state." Don't refuse to run.
+- **Handle remote-only mode gracefully.** Sub-repos live at
+  `repos/<name>/` by convention. If that directory doesn't exist on
+  this machine (e.g. mobile, or before `bin/setup` ran), fall back
+  to GitHub API queries against the manifest's `git_remote` for
+  branch / HEAD / last-commit. Don't error — surface remote-only
+  mode in the output and continue.
 
 ## Process
 
-1. Read `state/manifest.md`. For each sub-repo, get role, local path,
-   git remote, default branch.
+1. Read `state/manifest.md`. For each sub-repo, get name, role,
+   `git_remote`, default branch. The working tree (if present on
+   this machine) lives at `repos/<name>/` — convention, not
+   configuration.
 
 2. For each sub-repo, gather:
-   - Local: current branch, HEAD short SHA, last commit date
-     (`git log -1 --format='%h %ad %s' --date=short`)
-   - Remote: open PRs (`gh pr list --json number,title,headRefName,updatedAt`)
-   - Sub-kit signal: read `<path>/.claude/active.md` if it exists (this
-     is what a sub-kit may write to advertise its current task)
+   - **If `repos/<name>/` exists locally:**
+     - branch: `git -C repos/<name> rev-parse --abbrev-ref HEAD`
+     - HEAD short SHA + last commit date:
+       `git -C repos/<name> log -1 --format='%h %ad %s' --date=short`
+     - Sub-kit signal: read `repos/<name>/.claude/active.md` if it
+       exists (this is what a sub-kit may write to advertise its
+       current task).
+   - **Otherwise (remote-only mode):**
+     - Use the manifest's default branch as the surveyed branch.
+     - HEAD: `gh api repos/<owner>/<repo>/branches/<default> --jq .commit.sha`
+     - Last commit date: same response, `.commit.commit.author.date`
+     - Sub-kit signal: try
+       `gh api repos/<owner>/<repo>/contents/.claude/active.md`;
+       if 404, no advertisement.
+   - **Always:** open PRs
+     (`gh pr list -R <owner>/<repo> --json number,title,headRefName,updatedAt`).
 
 3. Read `migrations/active/`. For each migration, gather affected repos
    and per-repo state.

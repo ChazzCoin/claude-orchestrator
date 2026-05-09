@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -38,13 +38,37 @@
         "from": "kit/sub-project-registration.md",
         "to": ".claude/sub-project-registration.md",
         "policy": "file-replace",
-        "note": "Registration workflow doc — sibling layout, three input cases, clone target convention, anti-patterns. Generic across instances."
+        "note": "Registration discipline + the /register and bin/setup flows. Workspace-internal model (sub-repos clone into repos/<name>/), mobile fallback, edge cases, anti-patterns. Generic across instances."
       },
       {
         "from": "kit/state/sub-repos/_template.md",
         "to": "state/sub-repos/_template.md",
         "policy": "file-replace",
         "note": "Per-sub-repo state file template. Each registered sub-repo gets state/sub-repos/<name>.md instantiated from this."
+      },
+      {
+        "from": "bin/setup",
+        "to": "bin/setup",
+        "policy": "file-replace-executable",
+        "note": "Collaborator-onboarding script — clones registered sub-repos into repos/<name>/. Synced from kit so improvements propagate; instances get the latest version on /sync."
+      },
+      {
+        "from": "bin/refresh",
+        "to": "bin/refresh",
+        "policy": "file-replace-executable",
+        "note": "Refresh script — fetches origin for every cloned sub-repo, writes state/last-fetch.json with ahead/behind/dirty per repo. Driven by /refresh skill; user-runnable directly. Synced from kit."
+      },
+      {
+        "from": "kit/skill-architecture.md",
+        "to": ".claude/skill-architecture.md",
+        "policy": "file-replace",
+        "note": "Discipline doc — when to script vs interpret skills. Decision rule, config-as-args pattern, generic-vs-templated scripts, file-layout conventions, output-pattern selection requirement. Generic across instances."
+      },
+      {
+        "from": "kit/output-catalogue.md",
+        "to": ".claude/output-catalogue.md",
+        "policy": "file-replace",
+        "note": "Visual design catalogue — 34 terminal output patterns. Every orchestrator script picks a pattern from here for its output shape. Consistency across scripts means a reader who's learned one knows how to read all the others. Generic across instances."
       },
       {
         "from": "kit/skills/",
@@ -113,6 +137,9 @@
     "files": [
       { "from": "bootstrap/CLAUDE.md.template",                     "to": "CLAUDE.md",                  "policy": "skip-if-exists" },
       { "from": "bootstrap/README.md.template",                     "to": "README.md",                  "policy": "skip-if-exists" },
+      { "from": "bootstrap/company-profile.md.template",            "to": "company-profile.md",         "policy": "skip-if-exists" },
+      { "from": "bootstrap/company-notes.md.template",              "to": "company-notes.md",           "policy": "skip-if-exists" },
+      { "from": "bootstrap/events.md.template",                     "to": "events.md",                  "policy": "skip-if-exists" },
       { "from": "bootstrap/roadmap.md.template",                    "to": "roadmap.md",                 "policy": "skip-if-exists" },
       { "from": "bootstrap/open-questions.md.template",             "to": "open-questions.md",          "policy": "skip-if-exists" },
       { "from": "bootstrap/platform-constraints.md.template",       "to": "platform-constraints.md",    "policy": "skip-if-exists" },
@@ -159,6 +186,7 @@
       "reviews/monthly",
       "reviews/quarterly",
       "state/sub-repos",
+      "state/inbox",
       "pr-reviews"
     ]
   }

@@ -23,6 +23,9 @@ get read every session — there's a priority order.
 - [`open-questions.md`](open-questions.md) — what's parked.
 - [`AUDIT.md`](AUDIT.md) — last 5–10 entries. Tells you what's recently changed.
 - [`state/manifest.md`](state/manifest.md) — registered sub-repos + last-known HEADs.
+- [`state/last-fetch.json`](state/last-fetch.json) — timestamp of the last `/refresh` against sub-repo remotes. If missing or older than 24h, surface that the picture may be stale and suggest `/refresh` before any compiler skill (`/status`, `/sync-check`, `/roadmap`, `/tasks`). Don't refuse to run those skills; just warn.
+- [`.claude/skill-architecture.md`](.claude/skill-architecture.md) — discipline for scripted vs interpretive vs mixed skills. Read when designing a new skill or converting one. Scripted skills are thin wrappers around `bin/<name>` shell scripts; the script is the spec.
+- [`.claude/output-catalogue.md`](.claude/output-catalogue.md) — visual design catalogue (34 patterns) for terminal output. Every script's output picks a pattern; never invent a custom shape. Read when building a new script or designing what a skill displays.
 
 ### On-demand — read when relevant
 
@@ -318,12 +321,15 @@ file is the depth. See [`state/README.md`](state/README.md).
 
 ### Registration
 
-How sub-repos physically get associated with the orchestrator —
-sibling layout, three input cases, anti-patterns — is documented
-at [`sub-project-registration.md`](sub-project-registration.md).
-Headline: orchestrator records absolute paths; never moves
-existing repos; recommended layout is orchestrator + sub-repos as
-siblings under a parent dir.
+How sub-repos physically land on disk and get associated with the
+orchestrator is documented at
+[`sub-project-registration.md`](sub-project-registration.md).
+Headline: the orchestrator owns its checkouts at
+`<orchestrator-root>/repos/<name>/`. `/register` is the per-repo,
+deliberate first-time flow; `bin/setup` is the bulk, automatic
+collaborator-onboarding flow. Path is convention, not configuration —
+identical on every machine. Existing checkouts elsewhere on a user's
+machine are not referenced by the orchestrator.
 
 ### What the orchestrator does NOT do
 

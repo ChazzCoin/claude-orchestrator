@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+#
+# bin/refresh — fetch origin for every cloned sub-repo.
+#
+# Output: Pattern 17 — Git branch overview
+#         (per-repo state line: glyph + name + branch + ahead/behind + status text;
+#          see .claude/output-catalogue.md)
+#
+# Usage:
+#   bin/refresh
+#
+# Behavior:
+#   - Reads state/manifest.md.
+#   - For each registered sub-repo with a local clone at repos/<name>/:
+#     git fetch origin, compute ahead/behind/dirty.
+#   - Writes state/last-fetch.json with timestamp + per-repo results.
+#   - Prints a one-line summary per sub-repo (Pattern 17).
+#
+# Read-only against remotes. Never pulls, never merges, never touches
+# working trees. Idempotent — safe to re-run.
+#
+# This is the deterministic flow behind the /refresh skill. The skill
+# is a thin wrapper that invokes this script and surfaces output. Do
+# not duplicate this flow in Claude-side interpretation; if the flow
+# changes, change this script and propagate via /sync.
+
+set -euo pipefail
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="$ORCH_ROOT/state/manifest.md"
+REPOS_DIR="$ORCH_ROOT/repos"
+LAST_FETCH="$ORCH_ROOT/state/last-fetch.json"
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "no manifest at $MANIFEST"
+  echo "is this an orchestrator instance? Run bin/init first."
+  exit 1
+fi
+
+# Parse manifest entries — emits TSV: name <TAB> git_remote <TAB> default_branch
+# Strips HTML comment blocks first so commented-out templates aren't parsed
+# as real registrations.
+ENTRIES=$(sed '/<!--/,/-->/d' "$MANIFEST" | awk '
+  function flush() {
+    if (name != "" && remote != "") {
+      print name "\t" remote "\t" (branch == "" ? "main" : branch)
+    }
+    name = ""; remote = ""; branch = ""
+  }
+  /^## Sub-repos/ { in_section = 1; next }
+  in_section && /^## / { flush(); name = $2; next }
+  in_section && /^- \*\*Git remote:\*\* / {
+    sub(/^- \*\*Git remote:\*\* /, "")
+    sub(/[ \t]+$/, "")
+    remote = $0
+  }
+  in_section && /^- \*\*Default branch:\*\* / {
+    sub(/^- \*\*Default branch:\*\* /, "")
+    sub(/[ \t]+$/, "")
+    branch = $0
+  }
+  END { flush() }
+')
+
+if [ -z "$ENTRIES" ]; then
+  echo "No sub-repos registered in $MANIFEST."
+  exit 0
+fi
+
+mkdir -p "$ORCH_ROOT/state"
+NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+RESULTS_TSV="$(mktemp)"
+SUMMARY_LINES=()
+
+trap 'rm -f "$RESULTS_TSV"' EXIT
+
+# Truncate a string to N chars, adding an ellipsis if it overflows.
+trunc() {
+  local s="$1"
+  local n="$2"
+  if [ "${#s}" -gt "$n" ]; then
+    printf '%s…' "${s:0:$((n-1))}"
+  else
+    printf '%s' "$s"
+  fi
+}
+
+while IFS=$'\t' read -r NAME GIT_REMOTE BRANCH; do
+  [ -z "$NAME" ] && continue
+  TARGET="$REPOS_DIR/$NAME"
+
+  if [ ! -d "$TARGET/.git" ]; then
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "○" "$(trunc "$NAME" 8)" "unfetched" "" "run bin/setup to clone")")
+    printf "%s\t\t0\t0\tfalse\tunfetched\t\n" "$NAME" >> "$RESULTS_TSV"
+    continue
+  fi
+
+  if FETCH_OUT=$(git -C "$TARGET" fetch origin 2>&1); then
+    CURRENT_BRANCH="$(git -C "$TARGET" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")"
+    AB="$(git -C "$TARGET" rev-list --left-right --count "HEAD...origin/$BRANCH" 2>/dev/null || printf '0\t0')"
+    AHEAD="$(printf '%s' "$AB" | cut -f1)"
+    BEHIND="$(printf '%s' "$AB" | cut -f2)"
+    DIRTY="false"
+    if [ -n "$(git -C "$TARGET" status --porcelain 2>/dev/null)" ]; then
+      DIRTY="true"
+    fi
+
+    # Status text: current / ahead / behind / diverged, plus optional dirty.
+    if [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -eq 0 ]; then
+      STATUS_TXT="current"
+    elif [ "$AHEAD" -gt 0 ] && [ "$BEHIND" -eq 0 ]; then
+      STATUS_TXT="ahead origin"
+    elif [ "$AHEAD" -eq 0 ] && [ "$BEHIND" -gt 0 ]; then
+      STATUS_TXT="behind origin"
+    else
+      STATUS_TXT="diverged"
+    fi
+    [ "$DIRTY" = "true" ] && STATUS_TXT="$STATUS_TXT · dirty"
+
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "●" "$(trunc "$NAME" 8)" "$(trunc "$CURRENT_BRANCH" 20)" "+$AHEAD -$BEHIND" "$STATUS_TXT")")
+    printf "%s\t%s\t%s\t%s\t%s\tok\t\n" "$NAME" "$CURRENT_BRANCH" "$AHEAD" "$BEHIND" "$DIRTY" >> "$RESULTS_TSV"
+  else
+    ERROR="$(printf '%s' "$FETCH_OUT" | head -c 200 | tr '\n\t' '  ')"
+    SUMMARY_LINES+=("$(printf '   %s  %-8s  %-20s  %-9s  %s' "✗" "$(trunc "$NAME" 8)" "" "" "ERROR: $ERROR")")
+    printf "%s\t\t0\t0\tfalse\terror\t%s\n" "$NAME" "$ERROR" >> "$RESULTS_TSV"
+  fi
+done <<< "$ENTRIES"
+
+# Write last-fetch.json from the TSV via python (stdlib only — no jq dependency).
+python3 - "$RESULTS_TSV" "$LAST_FETCH" "$NOW" <<'EOF'
+import json, sys
+tsv_path, out_path, now = sys.argv[1], sys.argv[2], sys.argv[3]
+results = {}
+with open(tsv_path) as f:
+    for line in f:
+        fields = line.rstrip('\n').split('\t')
+        if len(fields) < 7:
+            continue
+        name, branch, ahead, behind, dirty, status, error = fields
+        results[name] = {
+            "branch": branch if branch else None,
+            "ahead": int(ahead) if ahead else 0,
+            "behind": int(behind) if behind else 0,
+            "dirty": dirty == "true",
+            "status": status,
+            "error": error if error else None,
+        }
+data = {
+    "schema_version": 1,
+    "fetched_at": now,
+    "results": results,
+}
+with open(out_path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+EOF
+
+# Pattern 17 — Git branch overview
+HUMAN_NOW="$(date -u +"%Y-%m-%d %H:%M UTC")"
+echo
+echo "  REFRESH  ·  $HUMAN_NOW"
+echo
+echo
+for line in "${SUMMARY_LINES[@]}"; do
+  echo "$line"
+done
+echo
+echo
+echo "   saved · state/last-fetch.json"
+echo

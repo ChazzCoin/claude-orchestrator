@@ -1,5 +1,241 @@
 # Changelog
 
+## 0.9.0 — 2026-05-09
+
+Two design shifts in this release: introduce the **scripted-skill
+architecture** (skills can be locked-down shell scripts with thin
+Claude wrappers, not all interpretive markdown contracts) and add the
+**output catalogue** (34 visual patterns every script picks from,
+never inventing custom shapes). Both shifts move toward
+predictability over interpretation — Claude is great at judgment,
+computers are better at deterministic behavior. The orchestrator
+benefits from picking the right tool per task.
+
+### Scripted-skill architecture
+
+`bin/refresh` becomes the first scripted-skill prototype. The flow is
+locked in shell: read manifest → fetch each cloned sub-repo →
+compute ahead/behind/dirty → write `state/last-fetch.json` → print
+summary. The `/refresh` skill drops from 160 lines to 47 — just "run
+the script, surface output, don't reinterpret."
+
+- `bin/refresh` (NEW, kit-synced, executable) — deterministic flow.
+  Python stdlib for JSON output (no jq dependency). Tested
+  end-to-end against rai-orchestrator's manifest.
+- `kit/skills/refresh/SKILL.md` — rewritten as thin wrapper.
+- `kit/skill-architecture.md` (NEW) — discipline doc covering:
+  - Two shapes (scripted / interpretive / mixed) with decision rule.
+  - Why scripting locks down behavior (lockdown, doc-by-code,
+    user-runnable).
+  - Configuration: scripts read fields from
+    `.claude/local-config.json` (Python stdlib parsing).
+  - Two layers: generic kit-synced (`bin/<name>`) vs templated
+    instance-owned (`bootstrap/bin/<name>.sh.template`).
+  - File-layout conventions, what NOT to script, migration path
+    for converting existing skills.
+
+### Output catalogue
+
+`kit/output-catalogue.md` (NEW, 1501 lines) — visual design
+catalogue with 34 terminal output patterns. Hero cards, live
+dashboards, roadmap timelines, sprint boards, deployment reports,
+severity audits, git branch overviews, activity timelines, alert
+variants, empty states, stats grids, multi-step wizards, command
+references, selection prompts, and more. Each pattern includes raw
+template, color cues (semantic names), and design rationale.
+
+Every orchestrator script picks a pattern from the catalogue based
+on what its output is for. New requirements:
+
+1. Declare the pattern in the script header comment.
+2. Reference the pattern in the SKILL.md (if it has one).
+3. Compose existing patterns; don't invent custom shapes.
+
+Existing scripts retrofitted with pattern declarations:
+
+- `bin/init` — Pattern 23 (Activity timeline) + Pattern 1
+  hero-style next-steps block.
+- `bin/setup` — Pattern 23 + summary block + one-time Pattern 34
+  identity prompt on first run.
+- `bin/refresh` — Pattern 17 (Git branch overview). Output rewritten:
+
+```
+  REFRESH  ·  2026-05-09 01:44 UTC
+
+   ●  api       main                  +0 -3      behind origin
+   ●  web       main                  +0 -0      current
+   ●  ios       feat/x                +2 -0      ahead origin · dirty
+   ○  devops    unfetched                        run bin/setup to clone
+   ✗  api       (error)                          ERROR: <message>
+
+   saved · state/last-fetch.json
+```
+
+  Glyphs: `●` cloned · `○` unfetched · `✗` error. Status text
+  disambiguates: current / ahead / behind / diverged · dirty.
+
+### Wiring
+
+- `MANIFEST.json` — sync entries for `bin/refresh`,
+  `kit/skill-architecture.md`, `kit/output-catalogue.md`.
+- `bin/init` — copies `bin/refresh` into instances; copies the two
+  new discipline docs to `.claude/`.
+- `kit/orchestrator-rules.md` — session-start references list adds
+  both new docs.
+
+### Going forward
+
+Every new script:
+
+1. Picks a pattern from `output-catalogue.md`.
+2. Declares the pattern in its header comment.
+3. References the pattern in its SKILL.md (if any).
+4. Composes existing patterns rather than inventing new shapes.
+
+When a new pattern is genuinely needed, propose it as an addition to
+`output-catalogue.md` via PR.
+
+## 0.8.0 — 2026-05-08
+
+Two big shifts in this release:
+
+1. **Workspace-internal sub-repo model.** The orchestrator now owns
+   its own checkouts under `repos/<name>/` rather than referencing
+   external clones. Single mode, convention not configuration —
+   sub-repos always live at `<orchestrator-root>/repos/<name>/`.
+2. **Compilation primitives.** `/status` becomes a full cross-repo
+   compiler. `/refresh`, `/inbox`, `/roadmap`, `/tasks` are new
+   skills layered on top.
+
+The two ship together because every compiler skill assumes
+`repos/<name>/` is the canonical local view. The earlier
+"register-where-they-live" model didn't work for multi-machine,
+mobile, or fresh-collaborator flows. This release picks the simpler
+answer: the orchestrator IS the workspace; sub-repos clone into it.
+
+### Workspace-internal model
+
+- `bootstrap/state/manifest.md.template` — drop "Local path" field
+  from format spec, all entries, commented template; layout diagram
+  rewritten for `repos/<name>/`; updated kit-enabled detection prose.
+- `kit/state/sub-repos/_template.md` — drop `local_path` from
+  frontmatter.
+- `kit/sub-project-registration.md` — full rewrite. Single-mode,
+  `/register` (per-repo, deliberate) + `bin/setup` (bulk, automatic)
+  flows, mobile-fallback, edge cases, anti-patterns updated.
+- `kit/sub-projects.md` — Registration headline rules rewritten;
+  Git management → Fetching subsection introduces `/refresh` and
+  session-start staleness.
+- `kit/skills/register/SKILL.md` — full rewrite. Asks for
+  `git_remote` instead of local path; verifies via `git ls-remote`;
+  clones into `repos/<name>/` as the final step.
+- `kit/skills/sync-check/SKILL.md` — uses `repos/<name>/`
+  convention; remote-only fallback for machines without local
+  clones; surfaces stale-fetch warnings.
+- `kit/skills/migration/SKILL.md` — references
+  `repos/<name>/.claude/active-migrations.md`; flags missing local
+  clones for user resolution.
+
+### New script: `bin/setup`
+
+- Bulk-clones every registered sub-repo into `repos/<name>/`.
+- Idempotent (skips already-cloned, flags collisions).
+- Best-effort (reports per-repo failures without aborting).
+- Prompts once for identity (`me`, `machine_id`) on first run if
+  `.claude/local-config.json` is missing — otherwise silent.
+- Mobile / remote-only environments skip it entirely; read-side
+  skills fall back to `gh api` against the manifest's `git_remote`.
+
+### Identity config
+
+- `.claude/local-config.json` (NEW, gitignored) — per-machine
+  config: `me`, `machine_id`, `inbox_last_read`. Set during
+  `bin/setup` first run.
+
+### New skills
+
+- **`/refresh`** — fetches `origin` for every cloned sub-repo,
+  records ahead/behind/dirty per repo, writes
+  `state/last-fetch.json` so other skills know how stale the data
+  is. Read-only against remotes; never auto-pulls. Working trees
+  untouched.
+- **`/inbox`** — per-person messaging. Send (writes to
+  `state/inbox/<recipient>.md`, committed via git); read your own
+  unread (filtered by per-machine `inbox_last_read`); list sent;
+  list inboxes. Delivery is the recipient's next `git pull`.
+- **`/roadmap`** — compiles cross-sub-project roadmaps into
+  `state/roadmap-compiled.md`. Phase-based view showing what each
+  team is planning side-by-side. Sources (priority): claude-kit's
+  `tasks/ROADMAP.md`, top-level `ROADMAP.md`, README "Roadmap"
+  section. Surfaces alignment / misalignment in chat summary.
+- **`/tasks`** — compiles active-task state from each sub-repo
+  into `state/tasks-compiled.md`. Active scope only (in-progress +
+  next up; backlogs excluded). Flags stale tasks (≥7 days no
+  commit on branch).
+
+### Rewritten skill: `/status`
+
+The load-bearing daily-driver compiler. Reads:
+
+- Inbox unread count + headlines (for current user)
+- Roadmap "Now" + "Recently shipped"
+- Upcoming events (next 14 days)
+- Active migrations with stale flags
+- Open questions tagged Blocking
+- Per-sub-repo state (branch / ahead / behind / dirty / sub-kit
+  advertisement / open PRs) — from cached `state/last-fetch.json`
+  and `state/sync-status.md`
+- Drift (commits / branches not tied to any active migration)
+
+No `gh` calls, no `git fetch` — pure compile from on-disk state.
+Surfaces stale-fetch warnings when data is >24h.
+
+### New bootstrap templates (instance-owned, skip-if-exists)
+
+- `bootstrap/company-profile.md.template` — structured: mission,
+  products, leadership, mottos, strategic direction.
+- `bootstrap/company-notes.md.template` — freeform pad for
+  half-formed thoughts, internal discussions, potential directions.
+- `bootstrap/events.md.template` — Upcoming + Past sections for
+  conferences, demos, meetings, launches.
+
+### Other updates
+
+- `kit/orchestrator-rules.md` — session-start checks list adds
+  `state/last-fetch.json` with the 24h staleness rule.
+- `bin/init`:
+  - Gitignore heredoc adds `repos/`, `.claude/local-config.json`,
+    `state/last-fetch.json`, `state/roadmap-compiled.md`,
+    `state/tasks-compiled.md`.
+  - Scaffold list adds `state/inbox`.
+  - New `bootstrap_copy` entries for company-profile, company-notes,
+    events.
+  - Copies `bin/setup` into instances (with `chmod +x`).
+- `MANIFEST.json` — adds sync entries for `bin/setup`,
+  company-profile, company-notes, events; adds `state/inbox` to
+  scaffold.
+- `README.md` — tree shows `bin/setup`; new Instance layout and
+  Onboarding a collaborator sections.
+
+### Migration notes for existing instances
+
+Existing instances that pre-date this release register sub-repos at
+external absolute paths. To migrate:
+
+1. `/sync` to bring kit changes downstream.
+2. Strip `Local path:` lines from `state/manifest.md` and
+   `local_path:` from `state/sub-repos/<name>.md` frontmatter.
+3. Add `repos/`, `.claude/local-config.json`, and the new
+   generated-state files to `.gitignore`.
+4. Run `bin/setup` to clone registered sub-repos into
+   `repos/<name>/`. First run prompts for identity.
+
+Or simpler: re-bootstrap. The orchestrator's data (decisions,
+migrations, ADRs, etc.) lives in committed bootstrap files; a fresh
+`bin/init` preserves them and just updates kit machinery. Existing
+external sub-repo checkouts can be kept as personal working copies —
+the orchestrator no longer references them.
+
 ## 0.7.0 — 2026-05-08
 
 Codify the sub-project registration workflow. Answers the

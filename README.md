@@ -122,7 +122,7 @@ claude-orchestrator/
 ├── kit/                              # synced into instances on /sync
 │   ├── orchestrator-rules.md         # CTO operating discipline (analog of task-rules.md)
 │   ├── sub-projects.md               # how to work with kit-enabled + non-kit sub-projects
-│   ├── sub-project-registration.md   # registration workflow (sibling layout, clone convention)
+│   ├── sub-project-registration.md   # registration discipline + /register / bin/setup flows
 │   ├── claude-kit-reference.md       # pinned reference for claude-kit's shape
 │   ├── design.md                     # design standards discipline (tokens, validation)
 │   ├── skills/                       # /audit, /migration, /risk, /incident, /review, ...
@@ -160,7 +160,9 @@ claude-orchestrator/
 │   ├── design/                       # brand / assets / materials / mobile / web templates
 │   ├── state/manifest.md.template
 │   └── foundation.json
-├── bin/init                          # bootstrap a <company>-orchestrator
+├── bin/
+│   ├── init                          # bootstrap a <company>-orchestrator instance (one-time)
+│   └── setup                         # clone registered sub-repos into repos/<name>/ (per-machine)
 ├── MANIFEST.json
 ├── CHANGELOG.md
 └── README.md                         # this file
@@ -207,6 +209,58 @@ The init script:
    `reviews/{weekly,monthly,quarterly}/` with `.gitkeep`.
 8. Drops a default `.gitignore` if missing.
 9. Prints next steps.
+
+After init, the founder fills in the placeholders, commits the
+bootstrap content, and pushes. Then `/register` adds each sub-repo
+to the manifest (per-repo, deliberate; clones into `repos/<name>/`).
+Once the manifest is populated and pushed, the instance is portable.
+
+---
+
+## Instance layout (after init + /register)
+
+```
+<company>-orchestrator/              cloned from <org>/<company>-orchestrator
+├── .git/                            the orchestrator's repo
+├── .claude/                         skills, rules, foundation.json
+├── bin/setup                        clones registered sub-repos
+├── decisions/, state/, ...          the brain
+└── repos/                           GITIGNORED — sub-repos clone here
+    ├── api/                         (its own .git, working copy)
+    ├── ios/
+    ├── web/
+    └── devops/
+```
+
+`repos/` is gitignored. Sub-repos retain their own `.git`. Path is
+**convention** — always `<orchestrator-root>/repos/<name>/`, never
+stored in any state file, never varies per machine. Existing
+checkouts elsewhere on the user's machine are not referenced — the
+orchestrator manages its own canonical local copies.
+
+---
+
+## Onboarding a collaborator
+
+After the founder has registered sub-repos and pushed, anyone
+joining the company:
+
+```sh
+git clone <org>/<company>-orchestrator
+cd <company>-orchestrator
+bin/setup    # clones every registered sub-repo into repos/<name>/
+```
+
+Fully automatic — no per-repo prompting. Idempotent (safe to re-run
+after fixing auth or network issues). Open Claude Code in the
+instance and run `/onboard` for orientation on what's open and where
+to look first.
+
+Mobile / remote-only environments skip `bin/setup`. Read-side skills
+(`/brief`, `/status`, `/sync-check`) fall back to `gh api` queries
+against the manifest's `git_remote`. Write-side operations
+(`/migration` updating notice files, `/register` cloning) require a
+local clone and so are deferred to a machine that's run setup.
 
 ---
 

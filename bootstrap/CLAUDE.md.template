@@ -86,9 +86,9 @@ via `/sync`):
   the orchestrator can read kit-enabled sub-projects with
   confidence.
 - [`.claude/sub-project-registration.md`](.claude/sub-project-registration.md)
-  — registration workflow: sibling layout, the three input cases
-  (existing path / GitHub URL / unknown), clone target convention,
-  anti-patterns.
+  — registration discipline + the `/register` (per-repo) and
+  `bin/setup` (bulk) flows; workspace-internal model
+  (`repos/<name>/`); mobile / remote-only fallback; anti-patterns.
 - [`.claude/design.md`](.claude/design.md) — design standards
   discipline (tokens are source of truth, validation pattern).
 

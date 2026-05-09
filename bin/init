@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 #
-# claude-orchestrator init — bootstrap a <company>-orchestrator instance.
+# bin/init — bootstrap a <company>-orchestrator instance.
+#
+# Output: Pattern 23 — Activity timeline
+#         (sectional `→` arrows for stages; indented per-action lines
+#          beneath; final next-steps block as Pattern 1 hero-style.
+#          See .claude/output-catalogue.md.)
 #
 # Usage:
 #   claude-orchestrator/bin/init [target-dir]
@@ -84,6 +89,33 @@ if [ -f "$KIT_DIR/kit/state/sub-repos/_template.md" ]; then
   echo "    template: state/sub-repos/_template.md"
 fi
 
+# bin/setup → bin/setup (collaborator-onboarding script)
+mkdir -p "$TARGET/bin"
+if [ -f "$KIT_DIR/bin/setup" ]; then
+  cp "$KIT_DIR/bin/setup" "$TARGET/bin/setup"
+  chmod +x "$TARGET/bin/setup"
+  echo "    script:   bin/setup"
+fi
+
+# bin/refresh → bin/refresh (sub-repo fetch script, driven by /refresh skill)
+if [ -f "$KIT_DIR/bin/refresh" ]; then
+  cp "$KIT_DIR/bin/refresh" "$TARGET/bin/refresh"
+  chmod +x "$TARGET/bin/refresh"
+  echo "    script:   bin/refresh"
+fi
+
+# kit/skill-architecture.md → .claude/skill-architecture.md
+if [ -f "$KIT_DIR/kit/skill-architecture.md" ]; then
+  cp "$KIT_DIR/kit/skill-architecture.md" "$TARGET/.claude/skill-architecture.md"
+  echo "    rules:    .claude/skill-architecture.md"
+fi
+
+# kit/output-catalogue.md → .claude/output-catalogue.md
+if [ -f "$KIT_DIR/kit/output-catalogue.md" ]; then
+  cp "$KIT_DIR/kit/output-catalogue.md" "$TARGET/.claude/output-catalogue.md"
+  echo "    rules:    .claude/output-catalogue.md"
+fi
+
 mkdir -p "$TARGET/.claude/skills"
 if [ -d "$KIT_DIR/kit/skills" ]; then
   for skill in "$KIT_DIR/kit/skills"/*/; do
@@ -153,6 +185,9 @@ bootstrap_copy() {
 
 bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"                     "$TARGET/CLAUDE.md"                  "CLAUDE.md"
 bootstrap_copy "$KIT_DIR/bootstrap/README.md.template"                     "$TARGET/README.md"                  "README.md"
+bootstrap_copy "$KIT_DIR/bootstrap/company-profile.md.template"            "$TARGET/company-profile.md"         "company-profile.md"
+bootstrap_copy "$KIT_DIR/bootstrap/company-notes.md.template"              "$TARGET/company-notes.md"           "company-notes.md"
+bootstrap_copy "$KIT_DIR/bootstrap/events.md.template"                     "$TARGET/events.md"                  "events.md"
 bootstrap_copy "$KIT_DIR/bootstrap/roadmap.md.template"                    "$TARGET/roadmap.md"                 "roadmap.md"
 bootstrap_copy "$KIT_DIR/bootstrap/open-questions.md.template"             "$TARGET/open-questions.md"          "open-questions.md"
 bootstrap_copy "$KIT_DIR/bootstrap/platform-constraints.md.template"       "$TARGET/platform-constraints.md"    "platform-constraints.md"
@@ -228,6 +263,7 @@ scaffold_dir "reviews/weekly"      "reviews/weekly"
 scaffold_dir "reviews/monthly"     "reviews/monthly"
 scaffold_dir "reviews/quarterly"   "reviews/quarterly"
 scaffold_dir "state/sub-repos"     "state/sub-repos"
+scaffold_dir "state/inbox"         "state/inbox"
 scaffold_dir "pr-reviews"          "pr-reviews"
 
 # --- 5. .gitignore ---------------------------------------------------
@@ -247,10 +283,20 @@ if [ ! -f "$TARGET/.gitignore" ]; then
 .claude/settings.local.json
 .claude/worktrees/
 
-# Generated state (regenerated on demand)
+# Per-machine identity + read-state config (set by bin/setup).
+.claude/local-config.json
+
+# Bootstrap-cloned sub-repos (managed by bin/setup).
+# Each subdir has its own .git — never tracked by the orchestrator.
+repos/
+
+# Generated state (regenerated on demand, machine-specific)
 state/sync-status.md
 state/audit-progress.md
 state/brief-cache.md
+state/last-fetch.json
+state/roadmap-compiled.md
+state/tasks-compiled.md
 EOF
   echo "    create:  .gitignore"
 fi
@@ -270,8 +316,11 @@ Next steps:
      These shape every ADR you'll file.
   5. Run /audit inside Claude Code to populate stack, contracts,
      conventions, platform-constraints — that's the v1 entry point.
-  6. Use /register to add sub-repos to state/manifest.md as you
-     spin them up.
+  6. Use /register to add each sub-repo to state/manifest.md
+     (per-repo, deliberate). Registration clones into repos/<name>/.
+  6a. After registering, push the manifest. Subsequent collaborators
+      clone the orchestrator and run bin/setup to populate their
+      repos/ — fully automatic, no prompts.
   7. Fill in ownership.md, vendors.md, security-posture.md,
      compliance.md as data exists. Don't fill them with fiction.
   8. cost-tracking.md and slos.md stay as scaffolding until you
