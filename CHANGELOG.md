@@ -1,5 +1,81 @@
 # Changelog
 
+## 0.11.1 — 2026-05-09
+
+Five new `bin/` scripts that standardize the mechanical operations
+v0.11.0 introduced. Eliminates prose-duplication across skills and
+makes governance enforceable rather than aspirational.
+
+### New scripts
+
+| Script | What it does | Replaces |
+|---|---|---|
+| `bin/validate-task-spec` | Validates a task/proposal `.md` against `governance/task-spec-shape.md` (frontmatter, 9 required body sections, AC checkboxes, References bullets). Exit 0 valid / 1 invalid / 2 usage. `--json` for machine output. | The "you should follow this" rule in governance — now there's a check. Wired into `/promote` (refuses to promote invalid proposals). |
+| `bin/preferences-check` | Implements the 5-step recipe at a known fork. Subcommands: `resolve`, `log`, `capture`, `revoke`, `clear-log`. Returns JSON. | The recipe duplicated across `/register`, `/feature`, `/migration`, and `/preferences` SKILL.md. Skills now shell out to one canonical implementation. |
+| `bin/render-active-notice` | Renders `<sub>/.claude/active-<concern>.md` for a repo from kit template + filtered artifacts. Concerns: `features`, `migrations`. | The wholesale-regeneration logic duplicated in `/feature` and `/migration` skills. New concerns plug in by adding a template. |
+| `bin/open-orch-pr` | Standardized `chore/orch-*` PR flow: pull main, branch, commit with `orch:` prefix, push, gh pr create. | The pull-branch-commit-push-PR recipe duplicated across `/register`, `/migration`, `/promote`. |
+| `bin/validate-internal-links` | Walks markdown under `kit/`, `bootstrap/`, `decisions/`, etc. and verifies every internal `[text](path)` link resolves. | Manual link auditing. Run via pre-commit or CI. (Known limitation: kit-checkout mode produces false positives for instance-content references.) |
+
+### Skill wiring
+
+Existing skills now invoke the scripts as the canonical
+implementation:
+
+- `/preferences` (modes: set, revoke, clear-log) → `bin/preferences-check <subcommand>`
+- `/register` step 11 → `bin/preferences-check resolve / log / capture`
+- `/feature` step 4 (notice render) → `bin/render-active-notice features <repo>`
+- `/migration` step 5 (notice render) → `bin/render-active-notice migrations <repo>`
+- `/promote` → `bin/validate-task-spec` (gate) + `bin/open-orch-pr` (PR)
+
+Prose stays in SKILL.md for Claude's algorithmic context; the
+scripts are the source of truth for mechanics.
+
+### Format fix: `bootstrap/decision-log.md.template`
+
+v0.11.0 shipped the template with broken markdown hierarchy
+(`## <fork-id>` h2 conflicting with `## Active` h2). v0.11.1
+corrects it to `### <fork-id>` (h3 nested under `## Active`) +
+`**History:**` field with indented bullets. The
+`bin/preferences-check` parser expects the corrected format. No
+instances bootstrapped from v0.11.0 yet (release happened minutes
+before v0.11.1), so this is backward-compatible in practice.
+
+### Verification
+
+`bin/preferences-check` is end-to-end smoke-tested:
+
+```sh
+bin/preferences-check log auto-scaffold-shared-on-register yes --context "test1"
+# {"logged":true,"streak":1,"should_offer":false,...}
+
+bin/preferences-check log auto-scaffold-shared-on-register yes --context "test2"
+# {"streak":2,"should_offer":false,...}
+
+bin/preferences-check log auto-scaffold-shared-on-register yes --context "test3"
+# {"streak":3,"should_offer":true,"offer_prompt":"I've seen you answer..."}
+
+bin/preferences-check capture auto-scaffold-shared-on-register yes \
+  --evidence "auto-offer accepted after 3 yes" --source offer-accepted
+# {"captured":true,...}
+# Verify state/preferences.md now has the entry.
+```
+
+`bin/validate-task-spec` is verified against
+`kit/proposals/_template-task.md` (passes).
+
+### Known limitations (deferred)
+
+- `bin/preferences-check capture` archive step emits an
+  awk-newline warning when moving the log section from Active to
+  Captured. Capture itself succeeds (preference written); log
+  archive may be incomplete in edge cases. v0.11.2 cleanup.
+- `bin/validate-internal-links` reports false positives in
+  kit-checkout mode for instance-content paths (`roadmap.md`,
+  `state/manifest.md`, `.claude/skill-architecture.md`, etc.).
+  In instances, all these paths exist and validation is accurate.
+  v0.11.2: read MANIFEST.json bootstrap/scaffold sections to
+  whitelist instance-only paths.
+
 ## 0.11.0 — 2026-05-09
 
 Six layered additions: phase/task discipline, durable two-way
