@@ -11,6 +11,12 @@
 .claude/settings.local.json
 .claude/worktrees/
 
+# Per-machine identity (set by bin/setup; used by /inbox)
+.claude/local-config.json
+
+# Integration secrets (SMTP credentials etc. — never committed)
+.claude/integrations-secrets.json
+
 # Generated state (regenerated on demand, not version-controlled)
 # Uncomment if you decide generated state should be ephemeral:
 # state/sync-status.md

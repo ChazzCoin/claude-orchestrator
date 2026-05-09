@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+#
+# bin/contacts — read/write the central contacts directory at
+#                state/contacts.json. People the orchestrator may
+#                communicate with on the CTO's behalf.
+#
+# Output: JSON for read ops; status messages for writes.
+#
+# Subcommands:
+#   list [--json]                          # list handles; --json full dump
+#   exists <handle>                        # exit 0 known, 1 not
+#   get <handle>                           # full JSON entry
+#   get <handle> <field>                   # single field value (raw)
+#   add <handle> --name "Display Name" --email E [args...]
+#   set <handle> <field> <value>           # update one field
+#   remove <handle> [--force]              # delete entry
+#
+# Add args:
+#   --name "Display Name"      display_name (required)
+#   --email EMAIL              primary email (required; can repeat for multiple)
+#   --preferred-email EMAIL    which email is preferred (default: first --email)
+#   --role ROLE                e.g. "engineering", "vp-product"
+#   --tag TAG                  tag (can repeat)
+#   --notes "..."              freeform notes
+#
+# This script is the single entry point for contacts read/write.
+# Consumers: bin/send-email, future bin/calendar-*, bin/slack-send,
+# any skill that addresses people by handle.
+
+set -euo pipefail
+
+ORCH_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG="$ORCH_ROOT/state/contacts.json"
+
+# ---- python helper ----------------------------------------------------------
+
+py() {
+  python3 -c "
+import json, os, sys
+config_path = '$CONFIG'
+def load():
+    with open(config_path) as f: return json.load(f)
+def save(data):
+    with open(config_path, 'w') as f:
+        json.dump(data, f, indent=2)
+        f.write('\n')
+
+$1
+"
+}
+
+ensure_config() {
+  if [ ! -f "$CONFIG" ]; then
+    mkdir -p "$(dirname "$CONFIG")"
+    cat > "$CONFIG" <<'EOF'
+{
+  "schema_version": 1,
+  "contacts": {}
+}
+EOF
+  fi
+}
+
+# ---- subcommands ------------------------------------------------------------
+
+cmd_list() {
+  ensure_config
+  local json_mode=0
+  for arg in "$@"; do [ "$arg" = "--json" ] && json_mode=1; done
+
+  if [ "$json_mode" -eq 1 ]; then
+    py "print(json.dumps(load(), indent=2))"
+  else
+    py "
+data = load()
+contacts = data.get('contacts', {})
+if not contacts:
+    print('  (no contacts configured)')
+    sys.exit(0)
+for handle in sorted(contacts.keys()):
+    c = contacts[handle]
+    name = c.get('display_name', '?')
+    email = c.get('preferred_email') or (c.get('emails') or [''])[0]
+    role = c.get('role', '')
+    print(f'  {handle:<14} {name:<30} {email:<35} {role}')
+"
+  fi
+}
+
+cmd_exists() {
+  ensure_config
+  local handle="${1:-}"
+  [ -z "$handle" ] && { echo "usage: contacts exists <handle>" >&2; exit 2; }
+  py "sys.exit(0 if '$handle' in load().get('contacts', {}) else 1)"
+}
+
+cmd_get() {
+  ensure_config
+  local handle="${1:-}" field="${2:-}"
+  [ -z "$handle" ] && { echo "usage: contacts get <handle> [<field>]" >&2; exit 2; }
+
+  if [ -z "$field" ]; then
+    py "
+c = load().get('contacts', {}).get('$handle')
+if c is None:
+    print(json.dumps({'error': 'unknown contact: $handle'}))
+    sys.exit(1)
+print(json.dumps(c, indent=2))
+"
+  else
+    py "
+c = load().get('contacts', {}).get('$handle')
+if c is None: sys.exit(1)
+v = c.get('$field')
+if v is None: sys.exit(1)
+if isinstance(v, (dict, list)):
+    print(json.dumps(v))
+else:
+    print(v)
+"
+  fi
+}
+
+cmd_add() {
+  ensure_config
+  local handle="${1:-}"; shift || true
+  [ -z "$handle" ] && { echo "usage: contacts add <handle> --name N --email E [args]" >&2; exit 2; }
+
+  local name="" preferred_email="" role="" notes=""
+  local emails=()
+  local tags=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --name) name="$2"; shift 2 ;;
+      --email) emails+=("$2"); shift 2 ;;
+      --preferred-email) preferred_email="$2"; shift 2 ;;
+      --role) role="$2"; shift 2 ;;
+      --tag) tags+=("$2"); shift 2 ;;
+      --notes) notes="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  [ -z "$name" ] && { echo "add: --name is required" >&2; exit 2; }
+  [ "${#emails[@]}" -eq 0 ] && { echo "add: at least one --email is required" >&2; exit 2; }
+
+  # Default preferred_email to first --email if not set
+  [ -z "$preferred_email" ] && preferred_email="${emails[0]}"
+
+  # Build python list literals
+  local emails_py
+  emails_py="[$(printf '"%s",' "${emails[@]}")]"
+  emails_py="${emails_py%,]}]"
+  local tags_py
+  if [ "${#tags[@]}" -gt 0 ]; then
+    tags_py="[$(printf '"%s",' "${tags[@]}")]"
+    tags_py="${tags_py%,]}]"
+  else
+    tags_py="[]"
+  fi
+
+  py "
+data = load()
+if '$handle' in data.get('contacts', {}):
+    print(json.dumps({'error': 'already exists: $handle'}))
+    sys.exit(1)
+contacts = data.setdefault('contacts', {})
+contacts['$handle'] = {
+    'display_name': '''$name''',
+    'emails': $emails_py,
+    'preferred_email': '$preferred_email',
+    'role': '''$role''' or None,
+    'tags': $tags_py,
+    'notes': '''$notes''' or None,
+}
+data['contacts'] = dict(sorted(contacts.items()))
+save(data)
+print(json.dumps({'added': '$handle', 'entry': data['contacts']['$handle']}, indent=2))
+"
+}
+
+cmd_set() {
+  ensure_config
+  local handle="${1:-}" field="${2:-}" value="${3:-}"
+  [ -z "$handle" ] || [ -z "$field" ] && { echo "usage: contacts set <handle> <field> <value>" >&2; exit 2; }
+
+  py "
+data = load()
+c = data.get('contacts', {}).get('$handle')
+if c is None:
+    print(json.dumps({'error': 'unknown contact: $handle'}))
+    sys.exit(1)
+v = '''$value'''
+if v.lower() == 'true': v = True
+elif v.lower() == 'false': v = False
+elif v.lower() == 'null': v = None
+c['$field'] = v
+save(data)
+print(json.dumps({'set': {'handle': '$handle', 'field': '$field', 'value': v}}))
+"
+}
+
+cmd_remove() {
+  ensure_config
+  local handle="${1:-}"; shift || true
+  local force=0
+  for arg in "$@"; do [ "$arg" = "--force" ] && force=1; done
+
+  [ -z "$handle" ] && { echo "usage: contacts remove <handle> [--force]" >&2; exit 2; }
+
+  if [ "$force" -ne 1 ]; then
+    echo "About to remove '$handle' from $CONFIG."
+    echo "Re-run with --force to confirm."
+    exit 1
+  fi
+
+  py "
+data = load()
+if '$handle' not in data.get('contacts', {}):
+    print(json.dumps({'error': 'unknown contact: $handle'}))
+    sys.exit(1)
+removed = data['contacts'].pop('$handle')
+save(data)
+print(json.dumps({'removed': '$handle', 'was': removed}, indent=2))
+"
+}
+
+# ---- dispatch ---------------------------------------------------------------
+
+case "${1:-}" in
+  list) shift; cmd_list "$@" ;;
+  exists) shift; cmd_exists "$@" ;;
+  get) shift; cmd_get "$@" ;;
+  add) shift; cmd_add "$@" ;;
+  set) shift; cmd_set "$@" ;;
+  remove) shift; cmd_remove "$@" ;;
+  -h|--help|"")
+    grep '^#' "$0" | head -28 | sed 's/^# \?//'
+    exit 0
+    ;;
+  *)
+    echo "unknown subcommand: $1" >&2
+    echo "supported: list, exists, get, add, set, remove" >&2
+    exit 2
+    ;;
+esac

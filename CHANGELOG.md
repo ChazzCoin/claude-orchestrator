@@ -1,5 +1,151 @@
 # Changelog
 
+## 0.13.0 — 2026-05-09
+
+Integration foundation. Central contacts directory + first
+integration script (email). Establishes the pattern future
+integrations (calendar, slack, etc.) will follow.
+
+The shape:
+
+- **`state/contacts.json`** — committed config, central directory of
+  people. Same pattern as `state/repos.json`: machine-readable JSON,
+  CRUD via a helper script, source of truth.
+- **`state/integrations.json`** — committed config, declares which
+  integrations are wired (provider, from-address, etc.). No secrets.
+- **`.claude/integrations-secrets.json`** — gitignored, holds SMTP
+  credentials and other secrets. Loaded by integration scripts only
+  when actually sending.
+- **`bin/<integration>` scripts** — do the work. Read contacts
+  to resolve handles; read integrations.json for provider config;
+  read secrets only when transmitting.
+
+### New script: `bin/contacts`
+
+Read/write helper for `state/contacts.json`. Subcommands match
+`bin/repo-config` shape: `list`, `exists`, `get`, `add`, `set`,
+`remove`.
+
+```sh
+bin/contacts add andrew \
+  --name "Andrew Smith" \
+  --email "andrew@example.com" \
+  --role "engineering" \
+  --tag "api-team"
+
+bin/contacts list
+#   andrew    Andrew Smith    andrew@example.com    engineering
+
+bin/contacts get andrew preferred_email
+# andrew@example.com
+```
+
+### New script: `bin/send-email`
+
+Drafts (and optionally sends) email. Python-based for proper RFC
+2822 message building.
+
+- Resolves recipients: contact handle → email lookup, or raw
+  email if it contains `@`
+- Builds RFC 2822 message with proper headers (From, To, Cc,
+  Subject, Date, Message-ID, MIME-Version, Content-Type)
+- **Always writes a `.eml` file** to `state/drafts/<timestamp>-<slug>.eml`
+  for audit
+- With `--send`: also transmits via SMTP using credentials from
+  `.claude/integrations-secrets.json` (gitignored)
+- `--json` output for skill consumption
+
+```sh
+bin/send-email --to andrew \
+               --subject "deploy check-in" \
+               --body-file message.txt \
+               --from "chazz@example.com" \
+               --from-name "Chazz Romeo"
+# → drafted (not sent)
+#   to: andrew@example.com
+#   subject: deploy check-in
+#   draft: state/drafts/20260509-120607-deploy-check-in.eml
+```
+
+Default behavior is **draft-only**. `--send` is opt-in (and errors
+if `.claude/integrations-secrets.json` is missing or doesn't have
+an `email` section).
+
+### New skill: `/email`
+
+Thin wrapper around `bin/send-email`. Q&A flow:
+
+- Identifies recipients (resolves via `bin/contacts get`)
+- Gathers subject + body
+- Confirms before invoking the script
+- Defaults to draft-only; `--send` is opt-in per invocation
+- Renders the script's JSON result
+
+Different from `/inbox` (which is in-orchestrator per-person
+messaging via committed markdown files): `/email` is for actual
+outbound mail.
+
+### New bootstrap files
+
+- `bootstrap/contacts.json.template` → `state/contacts.json`
+- `bootstrap/integrations.json.template` → `state/integrations.json`
+
+Both skip-if-exists; instances bootstrap with empty configs ready
+for the user to populate.
+
+### `.gitignore` additions
+
+- `.claude/integrations-secrets.json` — never committed
+- `.claude/local-config.json` — per-machine identity (was already
+  treated as gitignored by `/inbox` documentation; now actually
+  ignored)
+
+### `state/drafts/` is committed
+
+Drafts are the audit trail of what the orchestrator composed. By
+default they're committed. Users who want ephemeral drafts can add
+`state/drafts/` to their own `.gitignore`.
+
+### Future integrations
+
+The shape is established. Future scripts follow the same pattern:
+
+- `bin/calendar-create` — read `state/integrations.json` calendar
+  config, secrets if needed, create event via API
+- `bin/slack-send` — same shape for Slack
+- `bin/linear-create-issue` — same for Linear
+
+Each new integration:
+1. Adds an entry to `state/integrations.json` under its provider
+   key (committed; declares connection)
+2. May add secrets to `.claude/integrations-secrets.json`
+   (gitignored)
+3. Ships a `bin/<integration>` script that reads both
+4. Optionally ships a thin skill wrapping it
+
+Same shape, scales cleanly. No special infrastructure.
+
+### Verification
+
+`bin/contacts` smoke-tested end-to-end:
+
+```sh
+bin/contacts add andrew --name "Andrew Smith" --email "andrew@example.com"
+# {"added":"andrew",...}
+bin/contacts list                                 # Compact list
+bin/contacts get andrew preferred_email           # Single field
+bin/contacts exists andrew                        # exit 0
+```
+
+`bin/send-email` smoke-tested:
+
+```sh
+bin/send-email --to andrew --subject "deploy" --body-file body.txt \
+               --from "chazz@example.com" --from-name "Chazz Romeo"
+# Writes state/drafts/...-deploy.eml with proper RFC 2822 headers
+# Output: drafted (not sent), draft path shown
+```
+
 ## 0.12.0 — 2026-05-09
 
 Central per-repo configuration + `/register` becomes a thin
