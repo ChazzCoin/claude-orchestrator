@@ -36,6 +36,7 @@ surfaces relevant entries to the user.
 | Concern | Template | Owning skill |
 |---|---|---|
 | Migrations | `migrations.md.template` | `/migration` |
+| Features | `features.md.template` | `/feature` |
 
 ## Adding a new concern (future work)
 

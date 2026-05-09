@@ -53,7 +53,13 @@ this shape:
     ├── web-task-rules.md           # platform extension (if web work)
     ├── ios-conventions.md          # platform conventions reference (if iOS)
     ├── active-migrations.md        # written by orchestrator's /migration
+    ├── active-features.md          # written by orchestrator's /feature
     ├── active.md                   # voluntary advertisement to orchestrator
+    ├── shared/                     # durable two-way per-repo context
+    │   ├── architecture.md         # living architecture doc
+    │   ├── inbox.md                # repo-bound message thread
+    │   ├── notes.md                # freeform shared memory
+    │   └── references.md           # curated URLs
     └── skills/                     # slash commands (synced from kit)
         ├── audit/
         ├── backlog/
@@ -201,6 +207,27 @@ Written by the orchestrator's `/migration` skill. Format spec at
 [`kit/templates/sub-repo-notices/migrations.md.template`](templates/sub-repo-notices/migrations.md.template).
 Sub-kit reads on session start per claude-kit's `task-rules.md`
 "Active orchestrator notices" rule.
+
+### `<sub>/.claude/active-features.md`
+
+Written by the orchestrator's `/feature` skill. Format spec at
+[`kit/templates/sub-repo-notices/features.md.template`](templates/sub-repo-notices/features.md.template).
+Lists open cross-cutting features (`status: planning` or
+`in-progress`) whose `affects:` includes this repo. Same
+auto-managed discipline as `active-migrations.md` — regenerated
+wholesale, deleted on empty. Sub-kit reads on session start.
+
+### `<sub>/.claude/shared/`
+
+Durable two-way per-repo context channel. Different discipline
+from `active-<concern>.md`: hand-edited (or appended), bidirectional
+(both orchestrator and sub-kit write), never auto-regenerated.
+Templates at [`kit/templates/sub-repo-shared/`](templates/sub-repo-shared/);
+README at [`kit/templates/sub-repo-shared/README.md`](templates/sub-repo-shared/README.md).
+Sub-kit reads `shared/inbox.md` and `shared/notes.md` on session
+start per the dev pre-flight checklist
+([`kit/governance/dev-preflight.md`](governance/dev-preflight.md)
+step 2).
 
 ### `<sub>/.claude/active.md`
 
