@@ -1,0 +1,32 @@
+# References — top-level index
+
+Roll-up of every reference doc tracked under `references/`. Topic dirs
+each have their own `INDEX.md` with detail. Edit this file when you add
+or version-bump a doc.
+
+> **Discipline:** see [CLAUDE.md](../CLAUDE.md#references) "References".
+> Don't overwrite — version-bump and update the topic's INDEX. ADRs and
+> risks may cite the version current at filing time.
+
+---
+
+## Topic dirs
+
+| Topic | Description | Index |
+|---|---|---|
+| `branding/` | Brand guidelines, color palettes, fonts, voice docs | [branding/INDEX.md](branding/INDEX.md) |
+| `design/` | Frontend / web / mobile design specs and mockups | [design/INDEX.md](design/INDEX.md) |
+| `compliance/` | SOC2, HIPAA, audit reports, policy docs | [compliance/INDEX.md](compliance/INDEX.md) |
+| `security/` | Pen test reports, security posture docs, threat models | [security/INDEX.md](security/INDEX.md) |
+| `marketing/` | Decks, brand voice, marketing collateral | [marketing/INDEX.md](marketing/INDEX.md) |
+
+Add more topics as needed; create the dir with its own `INDEX.md` and
+add a row above.
+
+---
+
+## Recently added (across all topics)
+
+> Newest at top. ISO date, topic, filename, one-line summary.
+
+*(empty)*

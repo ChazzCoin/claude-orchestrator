@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+# session-start-stale-check.sh — warn if sub-repo state is stale.
+#
+# Reads state/last-fetch.json. If missing, suggests /refresh. If
+# fetched_at is older than 24h, surfaces the staleness with the
+# affected compiler skills (/status, /sync-check, /roadmap, /tasks).
+# Silent when fresh.
+#
+# Output: plain text on stdout; the registered hook (in
+# .claude/settings.json) wraps it as additionalContext for Claude.
+#
+# Discipline source: .claude/orchestrator-rules.md "Reading state".
+
+set -e
+
+LAST_FETCH="state/last-fetch.json"
+
+if [ ! -f "$LAST_FETCH" ]; then
+  echo "state/last-fetch.json missing — sub-repo refresh has never run."
+  echo "Suggest /refresh before any compiler skill (/status, /sync-check, /roadmap, /tasks)."
+  exit 0
+fi
+
+# Parse fetched_at (ISO8601 UTC) using stdlib python — same dependency
+# floor as bin/refresh, no jq required for the script itself.
+TS=$(python3 - "$LAST_FETCH" <<'PY' 2>/dev/null
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        d = json.load(f)
+    print(d.get("fetched_at", ""))
+except Exception:
+    pass
+PY
+)
+
+if [ -z "$TS" ]; then
+  exit 0  # malformed; skip silently
+fi
+
+NOW_EPOCH=$(date -u +%s)
+THEN_EPOCH=$(python3 - "$TS" <<'PY' 2>/dev/null
+import sys
+from datetime import datetime
+ts = sys.argv[1].rstrip("Z")
+try:
+    dt = datetime.fromisoformat(ts)
+    print(int(dt.timestamp()))
+except Exception:
+    pass
+PY
+)
+
+if [ -z "$THEN_EPOCH" ]; then
+  exit 0  # parse fail; skip silently
+fi
+
+DIFF=$((NOW_EPOCH - THEN_EPOCH))
+THRESHOLD=86400  # 24h
+
+if [ "$DIFF" -gt "$THRESHOLD" ]; then
+  HOURS=$((DIFF / 3600))
+  echo "state/last-fetch.json is ${HOURS}h old (>24h)."
+  echo "Sub-repo picture may be stale. Suggest /refresh before any compiler skill"
+  echo "(/status, /sync-check, /roadmap, /tasks). Warning only — do not block."
+fi

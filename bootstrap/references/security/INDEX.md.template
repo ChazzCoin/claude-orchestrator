@@ -1,0 +1,22 @@
+# References — security
+
+Pen test reports, security posture docs, threat models, vulnerability
+disclosures.
+
+> Pen test reports are dated artifacts — file a new one per engagement,
+> never edit an old one. Risks raised against an old report should cite
+> that report by version.
+
+---
+
+## Active
+
+| File | Type | Version | Added | Cites | Summary |
+|---|---|---|---|---|---|
+| *(none yet)* | | | | | |
+
+## Historical
+
+| File | Superseded by | Retired | Notes |
+|---|---|---|---|
+| *(none yet)* | | | |

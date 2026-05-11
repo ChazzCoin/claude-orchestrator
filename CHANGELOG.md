@@ -1,5 +1,129 @@
 # Changelog
 
+## 0.14.0 — 2026-05-11
+
+Two threads: (1) instance-level Claude Code surface — `.claude/settings.json`,
+hook support, `@`-imports, and a `references/` directory for durable
+source documents (PDFs, design specs, compliance reports); (2) `/save`
+and `/load` skills ported from claude-kit for personal session
+continuity. Plus a placeholder scaffold for custom sub-agents
+(authoring deferred).
+
+### `.claude/settings.json` — instance config
+
+New file at `bootstrap/.claude/settings.json.template` → installed as
+`.claude/settings.json` (skip-if-exists). Ships:
+
+- A conservative permissions allowlist for read-only git/gh ops and
+  the kit's own `bin/*` scripts.
+- A `deny` list for destructive ops (`git push --force`, `git reset
+  --hard`, `rm -rf`).
+- One `SessionStart` hook registered (see below).
+
+A separate kit-dev `.claude/settings.json` lives at the orchestrator
+root for sessions working on the kit itself.
+
+### Hook: SessionStart staleness check
+
+`.claude/scripts/session-start-stale-check.sh` reads
+`state/last-fetch.json` and emits a warning into Claude's session
+context when:
+
+- The file is missing (no `/refresh` has ever run), or
+- `fetched_at` is older than 24h.
+
+Silent when fresh. Discipline source: `.claude/orchestrator-rules.md`
+"Reading state". Output is wrapped as `additionalContext` via the
+registered hook; pattern matches the existing devops repo's
+cloud-preflight setup.
+
+### `@`-imports in `CLAUDE.md`
+
+`bootstrap/CLAUDE.md.template` now auto-loads three small, dynamic
+state files into every session:
+
+- `@state/preferences.md` — recurring decisions the orchestrator
+  shouldn't ask about twice.
+- `@open-questions.md` — what's parked, top-of-mind.
+- `@state/manifest.md` — registered sub-repos.
+
+Larger files (`roadmap.md`, `AUDIT.md`, `migrations/active/`) stay as
+references in the body — too large to load every session.
+
+### `references/` directory
+
+New top-level directory for durable source documents. Five topic dirs
+seeded with `INDEX.md` templates:
+
+- `references/branding/` — brand guidelines, color palettes, fonts
+- `references/design/` — frontend/web/mobile design specs
+- `references/compliance/` — SOC2, HIPAA, audit reports
+- `references/security/` — pen test reports, threat models
+- `references/marketing/` — decks, brand voice, campaign assets
+
+Discipline (in `CLAUDE.md`): read `INDEX.md` first; never overwrite a
+versioned doc (keep v2 alongside v3); cite by path. PDFs are read
+directly via Claude Code's native PDF support.
+
+### `.claude/agents/` scaffold
+
+Empty directory created at init (`.gitkeep`) as a landing pad for
+future custom sub-agents. No agents authored yet — held pending design.
+
+### `bin/init` changes
+
+- New `bootstrap_copy_executable` helper — copies + `chmod +x`.
+- New bootstrap entries for the 8 files above.
+- New scaffold entry for `.claude/agents`.
+
+### `/save` and `/load` skills (ported from claude-kit v0.14.0)
+
+Personal session continuity — distinct from project-shared
+`/handoff`-style flows. Per-user, per-project. Stored at
+`~/.claude/projects/<key>/saves/` (user-global, not in-repo) so
+saves survive branch switches and are unified across worktrees.
+
+**`/save`** (`kit/skills/save/SKILL.md` + `save.sh`):
+
+- Mid-session checkpoint of the current thread of work
+- Sections: ✅ what we did · 🧠 what we worked out · 🚧 what's open
+  · 🧪 threads not yet pulled · 📎 references
+- Auto-archives the prior `SAVED.md` to `<YYYY-MM-DD-HHMM>.md`,
+  prepends a TIMELINE entry
+- Auto-injects current branch as `> **Branch.** ...` metadata for
+  `/load`'s mismatch detection
+- Same-minute collisions handled (`-2`, `-3`, ... suffixes)
+
+**`/load`** (`kit/skills/load/SKILL.md` + `load.sh`):
+
+- Read-side companion. Reads `SAVED.md`, scans last 5 TIMELINE
+  entries, runs `git log --since=<save-mtime>` to flag mismatches
+  between saved "what's open" and current commits
+- Strict-refusal `checkout` subcommand — refuses on dirty tree,
+  branch missing, branch in another worktree, "None" / unrecorded
+  branch
+- Pure read; never modifies SAVED.md, TIMELINE, or archives
+
+Both scripts use `git rev-parse --git-common-dir` + `cd -P` /
+`pwd -P` so all worktrees of a project share one save state and
+the macOS `/tmp` → `/private/tmp` symlink quirk doesn't fragment
+keys. Verified locally: invoking from this worktree wrote into the
+main-repo's project key, not a worktree-suffixed key.
+
+Port adjustments from upstream:
+
+- 3 dangling references to `script-craft.md` (a claude-kit doctrine
+  doc) stripped from `load/SKILL.md`. Imperative ("invoke as
+  `bash <skill-dir>/load.sh ...`") preserved with inline reasoning.
+- Conceptual references to `/handoff` and `/postmortem` left intact
+  even though the orchestrator doesn't currently ship them — they
+  describe the design intent ("`/save` is personal; `/handoff` is
+  project-shared") and the AI will skip suggesting skills it can't
+  find.
+
+Both skills auto-mirror via `bin/init`'s existing `kit/skills/`
+loop — no per-skill bootstrap_copy needed.
+
 ## 0.13.0 — 2026-05-09
 
 Integration foundation. Central contacts directory + first

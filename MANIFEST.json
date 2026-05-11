@@ -1,7 +1,7 @@
 {
   "$schema": "https://ChazzCoin.github.io/claude-orchestrator/manifest.schema.json",
   "name": "claude-orchestrator",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "CTO-assistant template — macro architectural truth across one company's stack. Distributable kit modeled on claude-kit.",
   "source": {
     "repo": "https://github.com/ChazzCoin/claude-orchestrator",
@@ -236,6 +236,29 @@
       { "from": "bootstrap/design/materials.md.template",           "to": "design/materials.md",        "policy": "skip-if-exists" },
       { "from": "bootstrap/design/mobile.md.template",              "to": "design/mobile.md",           "policy": "skip-if-exists" },
       { "from": "bootstrap/design/web.md.template",                 "to": "design/web.md",              "policy": "skip-if-exists" },
+      {
+        "from": "bootstrap/.claude/settings.json.template",
+        "to": ".claude/settings.json",
+        "policy": "skip-if-exists",
+        "note": "Instance-level Claude Code settings — permissions allowlist + SessionStart hook registration. Skip-if-exists so per-instance customizations survive /sync."
+      },
+      {
+        "from": "bootstrap/.claude/scripts/session-start-stale-check.sh.template",
+        "to": ".claude/scripts/session-start-stale-check.sh",
+        "policy": "skip-if-exists-executable",
+        "note": "Hook script — warns at session start if state/last-fetch.json is missing or >24h old. Output wrapped as additionalContext via the registered hook in .claude/settings.json. Plain text out; jq wraps."
+      },
+      {
+        "from": "bootstrap/references/INDEX.md.template",
+        "to": "references/INDEX.md",
+        "policy": "skip-if-exists",
+        "note": "Top-level index of reference docs (PDFs, design specs, compliance reports). Rolls up per-topic INDEX.md files."
+      },
+      { "from": "bootstrap/references/branding/INDEX.md.template",   "to": "references/branding/INDEX.md",   "policy": "skip-if-exists" },
+      { "from": "bootstrap/references/design/INDEX.md.template",     "to": "references/design/INDEX.md",     "policy": "skip-if-exists" },
+      { "from": "bootstrap/references/compliance/INDEX.md.template", "to": "references/compliance/INDEX.md", "policy": "skip-if-exists" },
+      { "from": "bootstrap/references/security/INDEX.md.template",   "to": "references/security/INDEX.md",   "policy": "skip-if-exists" },
+      { "from": "bootstrap/references/marketing/INDEX.md.template",  "to": "references/marketing/INDEX.md",  "policy": "skip-if-exists" },
       { "from": "bootstrap/tech-vision.md.template",                "to": "tech-vision.md",             "policy": "skip-if-exists" },
       { "from": "bootstrap/tech-principles.md.template",            "to": "tech-principles.md",         "policy": "skip-if-exists" },
       { "from": "bootstrap/vendors.md.template",                    "to": "vendors.md",                 "policy": "skip-if-exists" },
@@ -265,7 +288,8 @@
       "state/sub-repos",
       "state/inbox",
       "state/drafts",
-      "pr-reviews"
+      "pr-reviews",
+      ".claude/agents"
     ]
   }
 }
