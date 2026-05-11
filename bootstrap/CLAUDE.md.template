@@ -4,6 +4,16 @@
 > below for this company. The kit's `/sync` will never overwrite this
 > file — it's yours to evolve.
 
+## Always loaded
+
+These files are auto-loaded into every session via Claude Code's
+`@`-import. Keep them small and high-signal — they're in context whether
+or not they're relevant to the immediate request.
+
+@state/preferences.md
+@open-questions.md
+@state/manifest.md
+
 ## What this is
 
 This is **{{COMPANY_NAME}}'s** orchestrator — macro architectural truth
@@ -230,6 +240,36 @@ this role. Run `/skills` for the live list. Current set:
   canonical visual identity (tokens, palette, typography, voice,
   asset pointers, collateral specs, per-platform packages). See
   [`.claude/design.md`](.claude/design.md) for the discipline.
+- **Reference docs:** `references/{branding,design,compliance,security,marketing}/`
+  — durable PDFs and source documents (brand guidelines, compliance
+  reports, design specs, marketing collateral). Each topic dir has
+  an `INDEX.md` summarizing what's there. See
+  [References](#references) below for citation discipline.
 - **Artifacts:** `decisions/`, `features/`, `migrations/{active,closed}/`,
   `risks/{open,mitigated}/`, `incidents/`,
   `reviews/{weekly,monthly,quarterly}/`, `pr-reviews/`
+
+## References
+
+PDFs and source documents the orchestrator may need to cite live under
+`references/<topic>/`. Discipline:
+
+- **Read `INDEX.md` first.** Every topic dir has one summarizing what's
+  there, when added, what version, and what artifact (ADR, risk,
+  migration) cites it. Read the index before opening any PDF — saves
+  grep-ing binary blobs.
+- **Don't overwrite.** When a doc updates: keep the old version
+  (`brand-guidelines-v2.pdf`), add the new (`brand-guidelines-v3.pdf`),
+  update `INDEX.md` to point at v3 and mark v2 historical. ADRs and
+  risks may cite the version current at filing time — that link must
+  not rot.
+- **Cite by path.** Format:
+  `[brand-guidelines-v3.pdf](references/branding/brand-guidelines-v3.pdf)`.
+- **PDFs are readable directly.** Claude Code's Read tool handles PDF
+  natively, with pagination for files >10 pages.
+- **Top-level [`references/INDEX.md`](references/INDEX.md)** rolls up
+  every topic for a cross-cutting view.
+
+The kit ships empty topic dirs (`branding/`, `design/`, `compliance/`,
+`security/`, `marketing/`). Add more topics as needed; create the dir
+with its own `INDEX.md` and add a row to the top-level index.

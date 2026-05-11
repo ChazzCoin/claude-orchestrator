@@ -1,0 +1,22 @@
+# References — branding
+
+Brand guidelines, color palettes, fonts, voice docs, logo systems.
+
+> Don't overwrite when a doc updates. Keep the old version
+> (`brand-guidelines-v2.pdf`), add the new version (`brand-guidelines-v3.pdf`),
+> and update the row below to mark v2 historical. ADRs filed against v2
+> still resolve to v2.
+
+---
+
+## Active
+
+| File | Version | Added | Cites | Summary |
+|---|---|---|---|---|
+| *(none yet)* | | | | |
+
+## Historical
+
+| File | Superseded by | Retired | Notes |
+|---|---|---|---|
+| *(none yet)* | | | |

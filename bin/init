@@ -183,6 +183,20 @@ bootstrap_copy() {
   echo "    create:  $label"
 }
 
+bootstrap_copy_executable() {
+  local src="$1"
+  local dst="$2"
+  local label="$3"
+  if [ -f "$dst" ]; then
+    echo "    skip:    $label  (exists)"
+    return
+  fi
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  chmod +x "$dst"
+  echo "    create:  $label  (+x)"
+}
+
 bootstrap_copy "$KIT_DIR/bootstrap/CLAUDE.md.template"                     "$TARGET/CLAUDE.md"                  "CLAUDE.md"
 bootstrap_copy "$KIT_DIR/bootstrap/README.md.template"                     "$TARGET/README.md"                  "README.md"
 bootstrap_copy "$KIT_DIR/bootstrap/company-profile.md.template"            "$TARGET/company-profile.md"         "company-profile.md"
@@ -215,6 +229,18 @@ bootstrap_copy "$KIT_DIR/bootstrap/design/assets.md.template"              "$TAR
 bootstrap_copy "$KIT_DIR/bootstrap/design/materials.md.template"           "$TARGET/design/materials.md"        "design/materials.md"
 bootstrap_copy "$KIT_DIR/bootstrap/design/mobile.md.template"              "$TARGET/design/mobile.md"           "design/mobile.md"
 bootstrap_copy "$KIT_DIR/bootstrap/design/web.md.template"                 "$TARGET/design/web.md"              "design/web.md"
+
+# .claude/ instance config (settings.json + hook scripts)
+bootstrap_copy            "$KIT_DIR/bootstrap/.claude/settings.json.template"                       "$TARGET/.claude/settings.json"                       ".claude/settings.json"
+bootstrap_copy_executable "$KIT_DIR/bootstrap/.claude/scripts/session-start-stale-check.sh.template" "$TARGET/.claude/scripts/session-start-stale-check.sh" ".claude/scripts/session-start-stale-check.sh"
+
+# references/ — durable PDFs and source documents (per-topic INDEX.md)
+bootstrap_copy "$KIT_DIR/bootstrap/references/INDEX.md.template"            "$TARGET/references/INDEX.md"            "references/INDEX.md"
+bootstrap_copy "$KIT_DIR/bootstrap/references/branding/INDEX.md.template"   "$TARGET/references/branding/INDEX.md"   "references/branding/INDEX.md"
+bootstrap_copy "$KIT_DIR/bootstrap/references/design/INDEX.md.template"     "$TARGET/references/design/INDEX.md"     "references/design/INDEX.md"
+bootstrap_copy "$KIT_DIR/bootstrap/references/compliance/INDEX.md.template" "$TARGET/references/compliance/INDEX.md" "references/compliance/INDEX.md"
+bootstrap_copy "$KIT_DIR/bootstrap/references/security/INDEX.md.template"   "$TARGET/references/security/INDEX.md"   "references/security/INDEX.md"
+bootstrap_copy "$KIT_DIR/bootstrap/references/marketing/INDEX.md.template"  "$TARGET/references/marketing/INDEX.md"  "references/marketing/INDEX.md"
 
 # --- 3. foundation.json (stamped) ------------------------------------
 
@@ -265,6 +291,7 @@ scaffold_dir "reviews/quarterly"   "reviews/quarterly"
 scaffold_dir "state/sub-repos"     "state/sub-repos"
 scaffold_dir "state/inbox"         "state/inbox"
 scaffold_dir "pr-reviews"          "pr-reviews"
+scaffold_dir ".claude/agents"      ".claude/agents"
 
 # --- 5. .gitignore ---------------------------------------------------
 
